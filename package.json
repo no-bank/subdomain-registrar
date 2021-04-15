@@ -46,10 +46,13 @@
     "truffle": "^5.0.13",
     "truffle-contract": "^1.1.11",
     "url-loader": "^0.6.2",
-    "web3": "^0.18.2",
+    "web3": "1.2.11",
     "web3-utils": "^1.0.0-beta.48",
     "webpack": "^2.2.1",
-    "webpack-dev-server": "^2.9.3"
+    "webpack-dev-server": "^2.9.3",
+    "@harmony-js/core": "^0.1.57",
+    "@truffle/hdwallet-provider": "^1.2.1",
+    "dotenv": "^8.2.0"
   },
   "scripts": {
     "test": "truffle test",
@@ -70,8 +73,11 @@
     }
   },
   "dependencies": {
+    "@ensdomains/buffer": "^0.0.10",
+    "@ensdomains/dnssec-oracle": "^0.2.0",
     "@ensdomains/ens": "^0.4.0",
-    "@ensdomains/ethregistrar": "^2.0.0",
+    "@ensdomains/ethregistrar": "^2.0.4",
+    "@ensdomains/root": "^0.1.0",
     "eth-ens-namehash": "^2.0.0",
     "html-loader": "^0.5.1",
     "idna-uts46": "1.1.0",

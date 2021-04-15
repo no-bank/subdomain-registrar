@@ -8,15 +8,16 @@ import { default as _ } from 'underscore';
 import { default as $ } from 'jquery';
 import { keccak_256 as sha3 } from 'js-sha3';
 import { default as Promise } from 'bluebird';
+const utils = require('web3-utils');
 
-import subdomainregistrar_artifacts from '../../build/contracts/ENSMigrationSubdomainRegistrar.json';
+import subdomainregistrar_artifacts from '../../build/contracts/EthRegistrarSubdomainRegistrar.json';
 import ens_artifacts from '../../build/contracts/ENSRegistryWithFallback.json';
 import domainnames from './domains.json';
 
-const tld = "eth";
-const ensAddress = "0x00000000000c2e074ec69a0dfb2997ba6c7d2e1e";
-const referrerAddress = "0x0904Dac3347eA47d208F3Fd67402D039a3b99859";
-const defaultSubdomainRegistrar = "0xe65d8AAF34CB91087D1598e0A15B582F57F217d9";
+const tld = "one";
+const ensAddress = "0x8658177435d4e2f9cE0E651115995757E6b542e6";
+const referrerAddress = "0xFbE0741bC1B52dD723A6bfA145E0a15803AC9581";
+const defaultSubdomainRegistrar = "0x29770aC8cEEfad98C928c5A7142eDBc4c5f8A4a2";
 
 var SubdomainRegistrar = contract(subdomainregistrar_artifacts);
 var ENS = contract(ens_artifacts);
@@ -25,18 +26,22 @@ Promise.config({cancellation: true});
 var registrarVersions = {
   "1.0": {
     query: async function(domain, subdomain) {
-      return domain.contract.query('0x' + sha3(domain.name), subdomain);
+      console.log(111, domain, subdomain);
+      const res = await domain.contract.query('0x' + sha3(domain.name), subdomain);
+
+      console.log(222, res);
+      return res;
     },
     register: async function(domain, subdomain, ownerAddress, referrerAddress, resolverAddress, value) {
       return domain.contract.register(
         '0x' + sha3(domain.name),
         subdomain,
-        ownerAddress,
+        ownerAddress || referrerAddress,
         referrerAddress,
         resolverAddress,
         {
-          from: ownerAddress,
-          value: value,
+          from: ownerAddress || referrerAddress,
+          value: Number(value),
         });
     }
   }
@@ -68,7 +73,7 @@ window.App = {
       await this.buildInstances();
 
       // Get the address of the current public resolver
-      self.resolverAddress = await self.ens.resolver(namehash.hash('resolver.eth'));
+      self.resolverAddress = await self.ens.resolver(namehash.hash('resolver.one'));
     } catch(e) {
       console.log(e);
       $("#wrongnetworkmodal").modal('show');
@@ -124,6 +129,8 @@ window.App = {
       async function(domain) {
         var name = subdomain + "." + domain.name + "." + tld;
 
+        console.log(name);
+
         var item = $('<a href="#" class="list-group-item list-group-item-action flex-column align-items-start disabled">');
         item.data({domain: domain, subdomain: subdomain});
 
@@ -159,7 +166,8 @@ window.App = {
       item.addClass("list-group-item-danger");
       item.appendTo($('#results'));
     } else {
-      var cost = web3.fromWei(info[1]);
+        var cost = utils.toBN((String(info[1]))).toString();
+
       $(".icon", item).empty().append($('<span class="badge badge-primary badge-pill">').text("Ξ" + cost));
       item.removeClass("list-group-item-danger");
       item.addClass("list-group-item-success");
@@ -184,8 +192,10 @@ window.App = {
 
     $(".domainname").text(subdomain + "." + domain.name + "." + tld);
     $("#registeringmodal").modal('show');
-    var tx = await registrarVersions[domain.version].register(domain, subdomain, web3.eth.accounts[0], referrerAddress, this.resolverAddress, info[1]);
-    $("#etherscan").attr("href", "https://etherscan.io/tx/" + tx.tx);
+    const accounts = await ethereum.enable();
+
+    var tx = await registrarVersions[domain.version].register(domain, subdomain, accounts[0], referrerAddress, this.resolverAddress, utils.toBN(info[1]).toString());
+    $("#etherscan").attr("href", "https://explorer.pops.one/#/tx/" + tx.tx);
     $("#registeringmodal").modal('hide');
     $("#registeredmodal").modal('show');
     info[0] = '';
@@ -201,7 +211,7 @@ window.addEventListener('load', async function() {
     window.web3 = new Web3(ethereum);
     window.readOnly = false;
   } else {
-    window.web3 = new Web3(new Web3.providers.HttpProvider("https://mainnet.infura.io/Rg6BrBl8vIqJBc7AlL9h"));
+    window.web3 = new Web3(new Web3.providers.HttpProvider("https://api.s0.b.hmny.io"));
     window.readOnly = true;
   }
 

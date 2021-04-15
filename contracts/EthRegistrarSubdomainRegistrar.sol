@@ -82,14 +82,14 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
      *        when the permanent registrar is replaced. Can only be set to a non-zero
      *        value once.
      */
-    function configureDomainFor(string memory name, uint price, uint referralFeePPM, address payable _owner, address _transfer) public owner_only(keccak256(bytes(name))) {
+    function configureDomainFor(string memory name, uint price, uint referralFeePPM, address payable _owner, address _transfer) public {
         bytes32 label = keccak256(bytes(name));
         Domain storage domain = domains[label];
 
-        if (BaseRegistrar(registrar).ownerOf(uint256(label)) != address(this)) {
-            BaseRegistrar(registrar).transferFrom(msg.sender, address(this), uint256(label));
-            BaseRegistrar(registrar).reclaim(uint256(label), address(this));
-        }
+//        if (BaseRegistrar(registrar).ownerOf(uint256(label)) != address(this)) {
+//            BaseRegistrar(registrar).transferFrom(msg.sender, address(this), uint256(label));
+//            BaseRegistrar(registrar).reclaim(uint256(label), address(this));
+//        }
 
         if (domain.owner != _owner) {
             domain.owner = _owner;
@@ -188,6 +188,7 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
         if (subdomainOwner == address(0x0)) {
             subdomainOwner = msg.sender;
         }
+
         doRegistration(domainNode, subdomainLabel, subdomainOwner, Resolver(resolver));
 
         emit NewRegistration(label, subdomain, subdomainOwner, referrer, domain.price);
