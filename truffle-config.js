@@ -11,7 +11,7 @@ gasLimit = process.env.GAS_LIMIT
 gasPrice = process.env.GAS_PRICE
 
 module.exports = {
-    contracts_directory: "./contracts/EthRegistrarSubdomainRegistrar.sol",
+    // contracts_directory: "./contracts/EthRegistrarSubdomainRegistrar.sol",
     networks: {
         local: {
             host: 'localhost',
