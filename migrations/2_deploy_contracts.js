@@ -109,7 +109,7 @@ async function deploy(deployer, network, accounts) {
     // Deploy the root contract and make it the owner of the root node
     // return;
 
-    await deployer.deploy(SubdomainRegistrar, ens.address, {from: accounts[0]});
+    await deployer.deploy(SubdomainRegistrar, ens.address, priceOracle.address, registrar.address, {from: accounts[0]});
 
     const subdomainRegistrar = await SubdomainRegistrar.deployed();
 

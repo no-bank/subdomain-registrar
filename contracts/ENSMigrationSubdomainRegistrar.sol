@@ -32,7 +32,7 @@ import "./EthRegistrarSubdomainRegistrar.sol";
  */
 contract ENSMigrationSubdomainRegistrar is EthRegistrarSubdomainRegistrar {
 
-    constructor(ENS ens) EthRegistrarSubdomainRegistrar(ens) public { }
+    constructor(ENS ens, PriceOracle _prices, BaseRegistrar _base) EthRegistrarSubdomainRegistrar(ens, _prices, _base) public { }
 
     function migrateSubdomain(bytes32 node, bytes32 label) external {
         bytes32 subnode = keccak256(abi.encodePacked(node, label));

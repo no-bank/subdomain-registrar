@@ -112,9 +112,13 @@ module.exports = async function(deployer, network, accounts) {
     console.log(domainInfo[2].toNumber());
     console.log(domainInfo[3].toNumber());
 
-    const tx = await subdomainRegistrar.register(sha3(domain), 'foo', accounts[0], accounts[0], resolver.address, {
+    const rentPriceSub = await subdomainRegistrar.rentPrice('foo-12345ii', duration);
+
+    console.log('rentPrice: ', Number(rentPriceSub) / 1e18);
+
+    const tx = await subdomainRegistrar.register(sha3(domain), 'foo-12345ii', accounts[0], duration, accounts[0], resolver.address, {
         from: accounts[0],
-        value: utils.toBN(domainInfo[1])
+        value: utils.toBN(rentPriceSub)
     });
 
     console.log('9 - subdomainRegistrar - SUCCESS');
@@ -123,9 +127,9 @@ module.exports = async function(deployer, network, accounts) {
     // console.log('10 - owner: ', await subdomainRegistrar.owner(sha3("foo2")));
 
     console.log(await ens.owner(namehash.hash('crazy-test.one')));
-    console.log(await ens.owner(namehash.hash('foo.crazy-test.one')), accounts[0]);
     console.log(await resolver.addr(namehash.hash('crazy-test.one')), accounts[0]);
-    console.log(await resolver.addr(namehash.hash('foo.crazy-test.one')), accounts[0]);
+    console.log(await ens.owner(namehash.hash('foo-12345ii.crazy-test.one')), accounts[0]);
+    console.log(await resolver.addr(namehash.hash('foo-12345ii.crazy-test.one')), accounts[0]);
     // console.log(await ens.resolver(namehash.hash('foo.crazy-test.one')), accounts[0]);
     // console.log(await resolver.addr(namehash.hash('foo.test.eth')), accounts[1]);
 
