@@ -86,10 +86,10 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
         bytes32 label = keccak256(bytes(name));
         Domain storage domain = domains[label];
 
-//        if (BaseRegistrar(registrar).ownerOf(uint256(label)) != address(this)) {
-//            BaseRegistrar(registrar).transferFrom(msg.sender, address(this), uint256(label));
-//            BaseRegistrar(registrar).reclaim(uint256(label), address(this));
-//        }
+        if (BaseRegistrar(registrar).ownerOf(uint256(label)) != address(this)) {
+             BaseRegistrar(registrar).transferFrom(msg.sender, address(this), uint256(label));
+             BaseRegistrar(registrar).reclaim(uint256(label), address(this));
+        }
 
         if (domain.owner != _owner) {
             domain.owner = _owner;

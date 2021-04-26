@@ -1,8 +1,10 @@
 const ETHRegistrarController = artifacts.require('@ensdomains/ethregistrar/ETHRegistrarController');
-const OwnedResolver = artifacts.require('@ensdomains/resolver/OwnedResolver');
+const PublicResolver = artifacts.require('@ensdomains/resolver/PublicResolver');
 const BaseRegistrarImplementation = artifacts.require('@ensdomains/ethregistrar/BaseRegistrarImplementation');
 const SubdomainRegistrar = artifacts.require("EthRegistrarSubdomainRegistrar");
 const ENS = artifacts.require("@ensdomains/ens/ENSRegistry");
+
+const TestResolver = artifacts.require("TestResolver");
 
 const namehash = require('eth-ens-namehash');
 // const sha3 = require('js-sha3').keccak_256;
@@ -13,7 +15,7 @@ const sleep = (sec) => new Promise(resolve => setTimeout(resolve, 1000 * sec))
 
 module.exports = async function(deployer, network, accounts) {
     console.log('Controller address: ', ETHRegistrarController.address);
-    console.log('Resolver address: ', OwnedResolver.address);
+    console.log('Resolver address: ', PublicResolver.address);
 
     console.log('User account: ', accounts[0]);
 
@@ -23,7 +25,11 @@ module.exports = async function(deployer, network, accounts) {
     console.log('New domain: ', domain);
 
     const controller = await ETHRegistrarController.at(ETHRegistrarController.address);
-    const resolver = await OwnedResolver.at(OwnedResolver.address);
+    const resolver = await PublicResolver.at(PublicResolver.address);
+
+    await deployer.deploy(TestResolver);
+    const resolverTest = await TestResolver.deployed();
+
     // const baseRegistrarImplementation = await BaseRegistrarImplementation.at(BaseRegistrarImplementation.address);
     const subdomainRegistrar = await SubdomainRegistrar.at(SubdomainRegistrar.address);
     const ens = await ENS.at(ENS.address);
@@ -51,10 +57,10 @@ module.exports = async function(deployer, network, accounts) {
 
     const commitment = await controller.makeCommitmentWithConfig(
         domain,
-        accounts[0],
+        SubdomainRegistrar.address,
         "0xe6bcec774acd54b71bd49ca5570f4bae074e7d983cad8a3162b480219adecdea",
-        OwnedResolver.address,
-        accounts[0],
+        resolver.address,
+        SubdomainRegistrar.address,
         {from: accounts[0]}
     )
 
@@ -70,11 +76,11 @@ module.exports = async function(deployer, network, accounts) {
 
     await controller.registerWithConfig(
         domain,
-        accounts[0],
+        SubdomainRegistrar.address,
         duration,
         "0xe6bcec774acd54b71bd49ca5570f4bae074e7d983cad8a3162b480219adecdea",
         resolver.address,
-        accounts[0],
+        SubdomainRegistrar.address,
         {from: accounts[0], value: rentPrice}
     );
 
@@ -93,6 +99,8 @@ module.exports = async function(deployer, network, accounts) {
     // console.log(domainInfo[2].toNumber());
     // console.log(domainInfo[3].toNumber());
 
+    console.log('7-1', await subdomainRegistrar.owner(sha3(domain)));
+
     await subdomainRegistrar.configureDomain(domain, utils.toBN('10000000000000000'), 100000, {from: accounts[0]});
 
     console.log('8 - SUCCESS');
@@ -104,16 +112,28 @@ module.exports = async function(deployer, network, accounts) {
     console.log(domainInfo[2].toNumber());
     console.log(domainInfo[3].toNumber());
 
-    const tx = await subdomainRegistrar.register(sha3(domain), 'foo2', accounts[0], accounts[0], await ens.resolver(namehash.hash('resolver.one')), {
+    const tx = await subdomainRegistrar.register(sha3(domain), 'foo', accounts[0], accounts[0], resolver.address, {
         from: accounts[0],
         value: utils.toBN(domainInfo[1])
     });
 
-    console.log(tx.logs.length, 1);
-    console.log(tx.logs[0].event, 'NewRegistration');
-    console.log(tx.logs[0].args.label, sha3(domain));
-    console.log(tx.logs[0].args.subdomain, 'foo2');
-    console.log(tx.logs[0].args.owner, accounts[0]);
-    console.log(tx.logs[0].args.price, '10000000000000000');
-    console.log(tx.logs[0].args.referrer, accounts[0]);
+    console.log('9 - subdomainRegistrar - SUCCESS');
+
+    // console.log('11 - owner: ', await subdomainRegistrar.owner(sha3("foo2.crazy-test")));
+    // console.log('10 - owner: ', await subdomainRegistrar.owner(sha3("foo2")));
+
+    console.log(await ens.owner(namehash.hash('crazy-test.one')));
+    console.log(await ens.owner(namehash.hash('foo.crazy-test.one')), accounts[0]);
+    console.log(await resolver.addr(namehash.hash('crazy-test.one')), accounts[0]);
+    console.log(await resolver.addr(namehash.hash('foo.crazy-test.one')), accounts[0]);
+    // console.log(await ens.resolver(namehash.hash('foo.crazy-test.one')), accounts[0]);
+    // console.log(await resolver.addr(namehash.hash('foo.test.eth')), accounts[1]);
+
+    // console.log(tx.logs.length, 1);
+    // console.log(tx.logs[0].event, 'NewRegistration');
+    // console.log(tx.logs[0].args.label, sha3(domain));
+    // console.log(tx.logs[0].args.subdomain, 'foo2');
+    // console.log(tx.logs[0].args.owner, accounts[0]);
+    // console.log(tx.logs[0].args.price, '10000000000000000');
+    // console.log(tx.logs[0].args.referrer, accounts[0]);
 }

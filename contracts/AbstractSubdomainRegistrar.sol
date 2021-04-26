@@ -7,7 +7,8 @@ import "./RegistrarInterface.sol";
 contract AbstractSubdomainRegistrar is RegistrarInterface {
 
     // namehash('eth')
-    bytes32 constant public TLD_NODE = 0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
+    // bytes32 constant public TLD_NODE = 0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
+    bytes32 constant public TLD_NODE = 0x30f9ae3b1c4766476d11e2bacd21f9dff2c59670d8b8a74a88ebc22aec7020b9;
 
     bool public stopped = false;
     address public registrarOwner;

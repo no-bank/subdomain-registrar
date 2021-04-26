@@ -7,7 +7,7 @@ const StablePriceOracle = artifacts.require('@ensdomains/ethregistrar/StablePric
 const DummyOracle = artifacts.require('@ensdomains/ethregistrar/DummyOracle');
 
 const ETHRegistrarController = artifacts.require('@ensdomains/ethregistrar/ETHRegistrarController');
-const OwnedResolver = artifacts.require('@ensdomains/resolver/OwnedResolver');
+const PublicResolver = artifacts.require('@ensdomains/resolver/PublicResolver');
 const BaseRegistrarImplementation = artifacts.require('@ensdomains/ethregistrar/BaseRegistrarImplementation');
 const ReverseRegistrar = artifacts.require('@ensdomains/ens/ReverseRegistrar');
 const Root = artifacts.require('@ensdomains/root/Root');
@@ -34,8 +34,8 @@ async function deploy(deployer, network, accounts) {
     await deployer.deploy(ENS);
     const ens = await ENS.deployed();
 
-    await deployer.deploy(OwnedResolver);
-    const ownedResolver = await OwnedResolver.deployed();
+    await deployer.deploy(PublicResolver, ens.address);
+    const ownedResolver = await PublicResolver.deployed();
 
     // Deploy and activate the .eth registrar
     await deployer.deploy(BaseRegistrarImplementation, ens.address, ETH_NODE, {from: accounts[0]});
@@ -81,15 +81,15 @@ async function deploy(deployer, network, accounts) {
     const ethRegistrarController = await ETHRegistrarController.deployed();
 
     // Configure the owned resolver
-    await ownedResolver.methods['setAddr(bytes32,address)'](ETH_NODE, BaseRegistrarImplementation.address);
-    await ownedResolver.setInterface(ETH_NODE, "0x6ccb2df4", BaseRegistrarImplementation.address); // Legacy wrong ERC721 ID
-    await ownedResolver.setInterface(ETH_NODE, "0x80ac58cd", BaseRegistrarImplementation.address); // Correct ERC721 ID
-    await ownedResolver.setInterface(ETH_NODE, "0x018fac06", ETHRegistrarController.address); // Controller interface
+    // await ownedResolver.methods['setAddr(bytes32,address)'](ETH_NODE, BaseRegistrarImplementation.address);
+    // await ownedResolver.setInterface(ETH_NODE, "0x6ccb2df4", BaseRegistrarImplementation.address); // Legacy wrong ERC721 ID
+    // await ownedResolver.setInterface(ETH_NODE, "0x80ac58cd", BaseRegistrarImplementation.address); // Correct ERC721 ID
+    // await ownedResolver.setInterface(ETH_NODE, "0x018fac06", ETHRegistrarController.address); // Controller interface
 
     // ownedResolver.transferOwnership(ethRegistrarController.address, {from: accounts[0]});
     await registrar.addController(ethRegistrarController.address, {from: accounts[0]});
 
-    await ownedResolver.transferOwnership(ethRegistrarController.address, {from: accounts[0]});
+    // await ownedResolver.transferOwnership(ethRegistrarController.address, {from: accounts[0]});
 
     // Deploy and activate the reverse registrar
     await deployer.deploy(DefaultReverseResolver, ens.address, {from: accounts[0], gas: 1000000});
