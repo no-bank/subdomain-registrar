@@ -19,7 +19,7 @@ module.exports = async function(deployer, network, accounts) {
 
     console.log('User account: ', accounts[0]);
 
-    const domain = 'crazy-test';
+    const domain = 'crazy';
     const duration = 60 * 60 * 24 * 365; // 1 year
 
     console.log('New domain: ', domain);
@@ -49,40 +49,40 @@ module.exports = async function(deployer, network, accounts) {
     // await dhr.setSubnodeOwner('0x' + sha3(domain.name), accounts[0]);
     // await dhr.transfer('0x' + sha3(domain.name), registrar.address);
 
-    const rentPrice = await controller.rentPrice(domain, duration);
-
-    console.log('rentPrice: ', Number(rentPrice) / 1e18);
-
-    console.log('1 - makeCommitmentWithConfig')
-
-    const commitment = await controller.makeCommitmentWithConfig(
-        domain,
-        SubdomainRegistrar.address,
-        "0xe6bcec774acd54b71bd49ca5570f4bae074e7d983cad8a3162b480219adecdea",
-        resolver.address,
-        SubdomainRegistrar.address,
-        {from: accounts[0]}
-    )
-
-    console.log('2 - commit: ', commitment)
-
-    await controller.commit(commitment, {from: accounts[0]})
-
-    console.log('3 - sleep 61 sec')
-
-    await sleep(61);
-
-    console.log('4 - registerWithConfig')
-
-    await controller.registerWithConfig(
-        domain,
-        SubdomainRegistrar.address,
-        duration,
-        "0xe6bcec774acd54b71bd49ca5570f4bae074e7d983cad8a3162b480219adecdea",
-        resolver.address,
-        SubdomainRegistrar.address,
-        {from: accounts[0], value: rentPrice}
-    );
+    // const rentPrice = await controller.rentPrice(domain, duration);
+    //
+    // console.log('rentPrice: ', Number(rentPrice) / 1e18);
+    //
+    // console.log('1 - makeCommitmentWithConfig')
+    //
+    // const commitment = await controller.makeCommitmentWithConfig(
+    //     domain,
+    //     SubdomainRegistrar.address,
+    //     "0xe6bcec774acd54b71bd49ca5570f4bae074e7d983cad8a3162b480219adecdea",
+    //     resolver.address,
+    //     SubdomainRegistrar.address,
+    //     {from: accounts[0]}
+    // )
+    //
+    // console.log('2 - commit: ', commitment)
+    //
+    // await controller.commit(commitment, {from: accounts[0]})
+    //
+    // console.log('3 - sleep 61 sec')
+    //
+    // await sleep(61);
+    //
+    // console.log('4 - registerWithConfig')
+    //
+    // await controller.registerWithConfig(
+    //     domain,
+    //     SubdomainRegistrar.address,
+    //     duration,
+    //     "0xe6bcec774acd54b71bd49ca5570f4bae074e7d983cad8a3162b480219adecdea",
+    //     resolver.address,
+    //     SubdomainRegistrar.address,
+    //     {from: accounts[0], value: rentPrice}
+    // );
 
     console.log('5 - success')
 
@@ -116,21 +116,21 @@ module.exports = async function(deployer, network, accounts) {
 
     console.log('rentPrice: ', Number(rentPriceSub) / 1e18);
 
-    const tx = await subdomainRegistrar.register(sha3(domain), 'foo-12345ii', accounts[0], duration, accounts[0], resolver.address, {
-        from: accounts[0],
+    const tx = await subdomainRegistrar.register(sha3(domain), 'foo-12345ii', accounts[1], duration, accounts[0], resolver.address, {
+        from: accounts[1],
         value: utils.toBN(rentPriceSub)
     });
 
     console.log('9 - subdomainRegistrar - SUCCESS');
 
-    // console.log('11 - owner: ', await subdomainRegistrar.owner(sha3("foo2.crazy-test")));
+    // console.log('11 - owner: ', await subdomainRegistrar.owner(sha3("foo2.crazy")));
     // console.log('10 - owner: ', await subdomainRegistrar.owner(sha3("foo2")));
 
-    console.log(await ens.owner(namehash.hash('crazy-test.one')));
-    console.log(await resolver.addr(namehash.hash('crazy-test.one')), accounts[0]);
-    console.log(await ens.owner(namehash.hash('foo-12345ii.crazy-test.one')), accounts[0]);
-    console.log(await resolver.addr(namehash.hash('foo-12345ii.crazy-test.one')), accounts[0]);
-    // console.log(await ens.resolver(namehash.hash('foo.crazy-test.one')), accounts[0]);
+    console.log(await ens.owner(namehash.hash('crazy.one')));
+    console.log(await resolver.addr(namehash.hash('crazy.one')), accounts[0]);
+    console.log(await ens.owner(namehash.hash('foo-12345ii.crazy.one')), accounts[0]);
+    console.log(await resolver.addr(namehash.hash('foo-12345ii.crazy.one')), accounts[0]);
+    // console.log(await ens.resolver(namehash.hash('foo.crazy.one')), accounts[0]);
     // console.log(await resolver.addr(namehash.hash('foo.test.eth')), accounts[1]);
 
     // console.log(tx.logs.length, 1);

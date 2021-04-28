@@ -26,6 +26,8 @@ const ETH_NODE = namehash.hash(tld);
 const MIN_COMMITMENT_AGE = 60;
 const MAX_COMMITMENT_AGE = 86400;
 
+const sleep = (sec) => new Promise(resolve => setTimeout(resolve, 1000 * sec))
+
 module.exports = async function(deployer, network, accounts) {
     return await deploy(deployer, network, accounts);
 };
@@ -47,13 +49,6 @@ async function deploy(deployer, network, accounts) {
 
     console.log("Start: Set resolver.one address for main Resolver");
 
-    // Set address for owned resolver
-    await registrar.addController(accounts[0], {from: accounts[0]});
-    await registrar.register(utils.sha3('resolver'), accounts[0], 31536000, {from: accounts[0]});
-    await ens.setResolver(namehash.hash('resolver.one'), ownedResolver.address, {from: accounts[0]});
-    await ownedResolver.setAddr(namehash.hash("resolver.one"), ownedResolver.address);
-    await registrar.removeController(accounts[0], {from: accounts[0]});
-
     console.log("End: Set resolver.one address for main Resolver");
 
     await deployer.deploy(DummyOracle, utils.toBN(100000000000000));
@@ -70,6 +65,60 @@ async function deploy(deployer, network, accounts) {
         ), minPriceForSec]
     );
     const priceOracle = await StablePriceOracle.deployed();
+
+    await deployer.deploy(SubdomainRegistrar, ens.address, priceOracle.address, registrar.address, {from: accounts[0]});
+    const subdomainRegistrar = await SubdomainRegistrar.deployed();
+
+    // Set address for owned resolver
+    await registrar.addController(accounts[0], {from: accounts[0]});
+
+    console.log(1);
+    await sleep(3);
+
+    await registrar.register(utils.sha3('resolver'), accounts[0], 31536000, {from: accounts[0]});
+
+    console.log(2);
+    await sleep(3);
+
+    await ens.setResolver(namehash.hash('resolver.one'), ownedResolver.address, {from: accounts[0]});
+
+    console.log(3);
+    await sleep(5);
+
+    await ownedResolver.setAddr(namehash.hash("resolver.one"), ownedResolver.address);
+
+    console.log(4);
+    await sleep(5);
+
+    await registrar.register(utils.sha3('crazy'), accounts[0], 31536000, {from: accounts[0]});
+
+    console.log(5);
+    await sleep(5);
+
+    await ens.setResolver(namehash.hash('crazy.one'), ownedResolver.address, {from: accounts[0]});
+
+    console.log(6);
+    await sleep(5);
+
+    await ownedResolver.setAddr(namehash.hash("crazy.one"), subdomainRegistrar.address);
+
+    console.log(7);
+    await sleep(5);
+
+    registrar.reclaim(utils.sha3('crazy'), subdomainRegistrar.address);
+
+    console.log(8);
+    await sleep(5);
+
+    registrar.transferFrom(accounts[0], subdomainRegistrar.address, utils.sha3('crazy'));
+
+    console.log(9);
+    await sleep(5);
+
+    await registrar.removeController(accounts[0], {from: accounts[0]});
+
+    console.log(10);
+    await sleep(5);
 
     await deployer.deploy(
         ETHRegistrarController,
@@ -108,10 +157,6 @@ async function deploy(deployer, network, accounts) {
 
     // Deploy the root contract and make it the owner of the root node
     // return;
-
-    await deployer.deploy(SubdomainRegistrar, ens.address, priceOracle.address, registrar.address, {from: accounts[0]});
-
-    const subdomainRegistrar = await SubdomainRegistrar.deployed();
 
     return;
 
