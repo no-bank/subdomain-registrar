@@ -50,7 +50,7 @@ contract SubdomainRegistrar is AbstractSubdomainRegistrar {
 
     event TransferAddressSet(bytes32 indexed label, address addr);
 
-    constructor(ENS ens) AbstractSubdomainRegistrar(ens) public { }
+    constructor(ENS ens, BaseRegistrar _base) AbstractSubdomainRegistrar(ens, _base) public { }
 
     /**
      * @dev owner returns the address of the account that controls a domain.
@@ -180,9 +180,8 @@ contract SubdomainRegistrar is AbstractSubdomainRegistrar {
      * @param label The label hash of the domain to register a subdomain of.
      * @param subdomain The desired subdomain label.
      * @param _subdomainOwner The account that should own the newly configured subdomain.
-     * @param referrer The address of the account to receive the referral fee.
      */
-    function register(bytes32 label, string calldata subdomain, address _subdomainOwner, address payable referrer, address resolver) external not_stopped payable {
+    function register(bytes32 label, string calldata subdomain, address _subdomainOwner, address resolver) external not_stopped payable {
         address subdomainOwner = _subdomainOwner;
         bytes32 domainNode = keccak256(abi.encodePacked(TLD_NODE, label));
         bytes32 subdomainLabel = keccak256(bytes(subdomain));
@@ -205,11 +204,6 @@ contract SubdomainRegistrar is AbstractSubdomainRegistrar {
 
         // Send any referral fee
         uint256 total = domain.price;
-        if (domain.referralFeePPM * domain.price > 0 && referrer != address(0x0) && referrer != domain.owner) {
-            uint256 referralFee = (domain.price * domain.referralFeePPM) / 1000000;
-            referrer.transfer(referralFee);
-            total -= referralFee;
-        }
 
         // Send the registration fee
         if (total > 0) {
@@ -220,9 +214,9 @@ contract SubdomainRegistrar is AbstractSubdomainRegistrar {
         if (subdomainOwner == address(0x0)) {
             subdomainOwner = msg.sender;
         }
-        doRegistration(domainNode, subdomainLabel, subdomainOwner, Resolver(resolver));
+        doRegistration(domainNode, subdomainLabel, 31536000, '', subdomainOwner, Resolver(resolver));
 
-        emit NewRegistration(label, subdomain, subdomainOwner, referrer, domain.price);
+        emit NewRegistration(label, subdomain, subdomainOwner, domain.price);
     }
 
     /**

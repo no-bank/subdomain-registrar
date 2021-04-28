@@ -116,7 +116,7 @@ module.exports = async function(deployer, network, accounts) {
 
     console.log('rentPrice: ', Number(rentPriceSub) / 1e18);
 
-    const tx = await subdomainRegistrar.register(sha3(domain), 'foo-12345ii', accounts[1], duration, accounts[0], resolver.address, {
+    const tx = await subdomainRegistrar.register(sha3(domain), 'foo-12345ii', accounts[1], duration, 'twitter_name_1', resolver.address, {
         from: accounts[1],
         value: utils.toBN(rentPriceSub)
     });
@@ -130,6 +130,7 @@ module.exports = async function(deployer, network, accounts) {
     console.log(await resolver.addr(namehash.hash('crazy.one')), accounts[0]);
     console.log(await ens.owner(namehash.hash('foo-12345ii.crazy.one')), accounts[0]);
     console.log(await resolver.addr(namehash.hash('foo-12345ii.crazy.one')), accounts[0]);
+    console.log(await subdomainRegistrar.twitter(namehash.hash('foo-12345ii.crazy.one')));
     // console.log(await ens.resolver(namehash.hash('foo.crazy.one')), accounts[0]);
     // console.log(await resolver.addr(namehash.hash('foo.test.eth')), accounts[1]);
 

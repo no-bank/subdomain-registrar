@@ -72,53 +72,55 @@ async function deploy(deployer, network, accounts) {
     // Set address for owned resolver
     await registrar.addController(accounts[0], {from: accounts[0]});
 
+    const WAIT_TIMEOUT = 5;
+
     console.log(1);
-    await sleep(3);
+    await sleep(WAIT_TIMEOUT);
 
     await registrar.register(utils.sha3('resolver'), accounts[0], 31536000, {from: accounts[0]});
 
     console.log(2);
-    await sleep(3);
+    await sleep(WAIT_TIMEOUT);
 
     await ens.setResolver(namehash.hash('resolver.one'), ownedResolver.address, {from: accounts[0]});
 
     console.log(3);
-    await sleep(5);
+    await sleep(WAIT_TIMEOUT);
 
     await ownedResolver.setAddr(namehash.hash("resolver.one"), ownedResolver.address);
 
     console.log(4);
-    await sleep(5);
+    await sleep(WAIT_TIMEOUT);
 
     await registrar.register(utils.sha3('crazy'), accounts[0], 31536000, {from: accounts[0]});
 
     console.log(5);
-    await sleep(5);
+    await sleep(WAIT_TIMEOUT);
 
     await ens.setResolver(namehash.hash('crazy.one'), ownedResolver.address, {from: accounts[0]});
 
     console.log(6);
-    await sleep(5);
+    await sleep(WAIT_TIMEOUT);
 
     await ownedResolver.setAddr(namehash.hash("crazy.one"), subdomainRegistrar.address);
 
     console.log(7);
-    await sleep(5);
+    await sleep(WAIT_TIMEOUT);
 
     registrar.reclaim(utils.sha3('crazy'), subdomainRegistrar.address);
 
     console.log(8);
-    await sleep(5);
+    await sleep(WAIT_TIMEOUT);
 
     registrar.transferFrom(accounts[0], subdomainRegistrar.address, utils.sha3('crazy'));
 
     console.log(9);
-    await sleep(5);
+    await sleep(WAIT_TIMEOUT);
 
     await registrar.removeController(accounts[0], {from: accounts[0]});
 
     console.log(10);
-    await sleep(5);
+    await sleep(WAIT_TIMEOUT);
 
     await deployer.deploy(
         ETHRegistrarController,
@@ -137,6 +139,7 @@ async function deploy(deployer, network, accounts) {
 
     // ownedResolver.transferOwnership(ethRegistrarController.address, {from: accounts[0]});
     await registrar.addController(ethRegistrarController.address, {from: accounts[0]});
+    await registrar.addController(subdomainRegistrar.address, {from: accounts[0]});
 
     // await ownedResolver.transferOwnership(ethRegistrarController.address, {from: accounts[0]});
 
@@ -170,65 +173,3 @@ async function deploy(deployer, network, accounts) {
     await root.setController(ownerAddress, true, {from: accounts[0]});
     await root.transferOwnership(ownerAddress, {from: accounts[0]});
 };
-
-
-
-
-
-// var HashRegistrar = artifacts.require("HashRegistrar");
-// var TestResolver = artifacts.require("TestResolver");
-// var ENS = artifacts.require("@ensdomains/ens/contracts/ENSRegistry.sol");
-// var SubdomainRegistrar = artifacts.require("SubdomainRegistrar");
-//
-// var namehash = require('eth-ens-namehash');
-// var sha3 = require('js-sha3').keccak_256;
-// var Promise = require('bluebird');
-//
-// var domainnames = require('../app/js/domains.json');
-//
-// module.exports = function (deployer, network, accounts) {
-//     return deployer.then(async () => {
-//         if (network == "test") {
-//
-//             await deployer.deploy(ENS);
-//
-//             const ens = await ENS.deployed();
-//
-//             await deployer.deploy(HashRegistrar, ens.address, namehash.hash('eth'), 1493895600);
-//             await deployer.deploy(TestResolver);
-//
-//             await ens.setSubnodeOwner('0x0', '0x' + sha3('eth'), accounts[0]);
-//             await ens.setSubnodeOwner(namehash.hash('eth'), '0x' + sha3('resolver'), accounts[0]);
-//
-//             const resolver = await TestResolver.deployed();
-//             await ens.setResolver(namehash.hash('resolver.eth'), resolver.address);
-//
-//             const dhr = await HashRegistrar.deployed();
-//             await ens.setSubnodeOwner('0x0', '0x' + sha3('eth'), dhr.address);
-//
-//             await deployer.deploy(SubdomainRegistrar, ens.address);
-//
-//             const registrar = await SubdomainRegistrar.deployed();
-//
-//             // @todo figure out why this doesn't work
-//             // return Promise.map(domainnames, async function(domain) {
-//             //     if(domain.registrar !== undefined) return;
-//             //     await dhr.setSubnodeOwner('0x' + sha3(domain.name), accounts[0]);
-//             //     await dhr.transfer('0x' + sha3(domain.name), registrar.address);
-//             //     await registrar.configureDomain(domain.name, '10000000000000000', 100000);
-//             // });
-//
-//         } else {
-//             const ens = ENS.at("0xcc884532A32ACB5f3219942A7f396e064FAaD979");
-//             await deployer.deploy(SubdomainRegistrar, "0xcc884532A32ACB5f3219942A7f396e064FAaD979");
-//
-//             const registrar = await SubdomainRegistrar.deployed();
-//
-//             // const dhr = await HashRegistrar.deployed();
-//             // await dhr.setSubnodeOwner('0x' + sha3(domain.name), accounts[0]);
-//             // await dhr.transfer('0x' + sha3(domain.name), registrar.address);
-//
-//             await registrar.configureDomain('crazy-test', '10000000000000000', 100000);
-//         }
-//     });
-// };
