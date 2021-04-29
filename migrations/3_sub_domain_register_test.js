@@ -9,7 +9,8 @@ const utils = require('web3-utils');
 module.exports = async function(deployer, network, accounts) {
     console.log('Resolver address: ', PublicResolver.address);
 
-    console.log('User account: ', accounts[0]);
+    console.log('Owner account: ', accounts[0]);
+    console.log('User account: ', accounts[1]);
 
     const resolver = await PublicResolver.at(PublicResolver.address);
 
