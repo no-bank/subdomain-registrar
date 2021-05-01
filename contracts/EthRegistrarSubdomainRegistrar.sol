@@ -91,7 +91,7 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
      *        when the permanent registrar is replaced. Can only be set to a non-zero
      *        value once.
      */
-    function configureDomainFor(string memory name, uint price, uint referralFeePPM, address payable _owner, address _transfer) public {
+    function configureDomainFor(string memory name, uint price, uint referralFeePPM, address payable _owner, address _transfer) public owner_only(keccak256(bytes(name))) {
         bytes32 label = keccak256(bytes(name));
         Domain storage domain = domains[label];
 
