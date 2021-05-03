@@ -11,7 +11,7 @@ contract AbstractSubdomainRegistrar is RegistrarInterface {
     // bytes32 constant public TLD_NODE = 0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
     bytes32 constant public TLD_NODE = 0x30f9ae3b1c4766476d11e2bacd21f9dff2c59670d8b8a74a88ebc22aec7020b9;
 
-    uint constant public GRACE_PERIOD = 90 days;
+    uint public GRACE_PERIOD = 90 days;
 
     bool public stopped = false;
     address public registrarOwner;
@@ -157,6 +157,10 @@ contract AbstractSubdomainRegistrar is RegistrarInterface {
      */
     function stop() public not_stopped registrar_owner_only {
         stopped = true;
+    }
+
+    function setGracePeriod(uint duration) public registrar_owner_only {
+        GRACE_PERIOD = duration;
     }
 
     /**

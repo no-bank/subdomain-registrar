@@ -38,6 +38,7 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
         address payable referralAddress;
         uint price;
         uint referralFeePPM;
+        uint minDuration;
     }
 
     event NewPriceOracle(address indexed oracle);
@@ -155,6 +156,7 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
         domain.price = price;
         domain.referralFeePPM = 0;
         domain.referralAddress = referralAddress;
+        domain.minDuration = 31536000;
 
         emit DomainConfigured(label);
     }
@@ -207,10 +209,9 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
         bytes32 domainNode = keccak256(abi.encodePacked(TLD_NODE, label));
         bytes32 subdomainLabel = keccak256(bytes(subdomain));
 
-        // Subdomain must not be registered already.
-        require(ens.owner(keccak256(abi.encodePacked(domainNode, subdomainLabel))) == address(0));
-
         Domain storage domain = domains[label];
+
+        require(duration >= domain.minDuration);
 
         uint price = prices.price(subdomain, nameExpires(uint256(subdomainLabel)), duration);
 
@@ -225,20 +226,17 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
             msg.sender.transfer(msg.value - price);
         }
 
-        // Send any referral fee
-        uint256 total = price;
-
-        // Send the registration fee
-        if (total > 0) {
-            domain.referralAddress.transfer(total);
-        }
-
         // Register the domain
         if (subdomainOwner == address(0x0)) {
             subdomainOwner = msg.sender;
         }
 
         doRegistration(domainNode, subdomainLabel, duration, url, subdomainOwner, Resolver(resolver));
+
+        // Send the registration fee
+        if (price > 0) {
+            domain.referralAddress.transfer(price);
+        }
 
         emit NewRegistration(label, subdomain, subdomainOwner, price);
     }
