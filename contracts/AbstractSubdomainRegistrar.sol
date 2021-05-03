@@ -28,7 +28,7 @@ contract AbstractSubdomainRegistrar is RegistrarInterface {
     ENS public ens;
     BaseRegistrar public base;
 
-    modifier owner_only(bytes32 label) {
+    modifier owner_only(string memory label) {
         require(owner(label) == msg.sender);
         _;
     }
@@ -53,7 +53,7 @@ contract AbstractSubdomainRegistrar is RegistrarInterface {
     }
 
     // Returns the expiration timestamp of the specified id.
-    function nameExpires(uint256 id) external view returns(uint) {
+    function nameExpires(uint256 id) public view returns(uint) {
         return expiries[id];
     }
 
@@ -71,9 +71,11 @@ contract AbstractSubdomainRegistrar is RegistrarInterface {
         return _twitterURI;
     }
 
-    function _setTwitterURI(string memory name, string memory _tokenURI) public owner_only(keccak256(bytes(name))) {
+    function _setTwitterURI(string memory name, string memory _tokenURI) public owner_only(name) {
         bytes32 label = keccak256(bytes(name));
-        uint256 tokenId = uint256(label);
+        bytes32 node = keccak256(abi.encodePacked(TLD_NODE, label));
+
+        uint256 tokenId = uint256(node);
         require(available(tokenId));
 
         _tokenURIs[tokenId] = _tokenURI;
@@ -118,7 +120,7 @@ contract AbstractSubdomainRegistrar is RegistrarInterface {
      * @param name The name to set the resolver for.
      * @param resolver The address of the resolver
      */
-    function setResolver(string memory name, address resolver) public owner_only(keccak256(bytes(name))) {
+    function setResolver(string memory name, address resolver) public owner_only(name) {
         bytes32 label = keccak256(bytes(name));
         bytes32 node = keccak256(abi.encodePacked(TLD_NODE, label));
         ens.setResolver(node, resolver);
@@ -128,10 +130,10 @@ contract AbstractSubdomainRegistrar is RegistrarInterface {
      * @dev Configures a domain for sale.
      * @param name The name to configure.
      * @param price The price in wei to charge for subdomain registrations
-     * @param referralFeePPM The referral fee to offer, in parts per million
+     * @param referralAddress The referral fee to offer, in parts per million
      */
-    function configureDomain(string memory name, uint price, uint referralFeePPM) public {
-        configureDomainFor(name, price, referralFeePPM, msg.sender, address(0x0));
+    function configureDomain(string memory name, uint price, address payable referralAddress) public {
+        configureDomainFor(name, price, referralAddress, msg.sender, address(0x0));
     }
 
     /**
@@ -164,8 +166,8 @@ contract AbstractSubdomainRegistrar is RegistrarInterface {
      * @return rent The rent to retain a subdomain, in wei per second.
      * @return referralFeePPM The referral fee for the dapp, in ppm.
      */
-    function query(bytes32 label, string calldata subdomain) external view returns (string memory domain, uint price, uint rent, uint referralFeePPM);
+    function query(bytes32 label, string calldata subdomain) external view returns (string memory domain, uint price, uint rent, address referralAddress);
 
-    function owner(bytes32 label) public view returns (address);
-    function configureDomainFor(string memory name, uint price, uint referralFeePPM, address payable _owner, address _transfer) public;
+    function owner(string memory name) public view returns (address);
+    function configureDomainFor(string memory name, uint price, address payable referralAddress, address payable _owner, address _transfer) public;
 }

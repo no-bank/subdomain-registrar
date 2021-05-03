@@ -35,6 +35,7 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
     struct Domain {
         string name;
         address payable owner;
+        address payable referralAddress;
         uint price;
         uint referralFeePPM;
     }
@@ -49,7 +50,7 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
 
     function rentPrice(string memory name, uint duration) view public returns(uint) {
         bytes32 hash = keccak256(bytes(name));
-        return prices.price(name, base.nameExpires(uint256(hash)), duration);
+        return prices.price(name, nameExpires(uint256(hash)), duration);
     }
 
     /**
@@ -58,15 +59,24 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
      *      transferred to this contract, then the internal mapping is consulted
      *      to determine who controls it. If the owner is not set,
      *      the owner of the domain in the Registrar is returned.
-     * @param label The label hash of the deed to check.
+     * @param name The name string of the deed to check.
      * @return The address owning the deed.
      */
-    function owner(bytes32 label) public view returns (address) {
+    function owner(string memory name) public view returns (address) {
+        bytes32 label = keccak256(bytes(name));
+        bytes32 node = keccak256(abi.encodePacked(TLD_NODE, label));
+
         if (domains[label].owner != address(0x0)) {
             return domains[label].owner;
         }
 
-        return BaseRegistrar(registrar).ownerOf(uint256(label));
+        return ens.owner(node);
+    }
+
+    function referralAddress(string memory name) public view returns (address) {
+        bytes32 label = keccak256(bytes(name));
+
+        return domains[label].referralAddress;
     }
 
     /**
@@ -75,7 +85,7 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
      * @param name The name to transfer.
      * @param newOwner The address of the new owner.
      */
-    function transfer(string memory name, address payable newOwner) public owner_only(keccak256(bytes(name))) {
+    function transfer(string memory name, address payable newOwner) public owner_only(name) {
         bytes32 label = keccak256(bytes(name));
         emit OwnerChanged(label, domains[label].owner, newOwner);
         domains[label].owner = newOwner;
@@ -85,19 +95,19 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
      * @dev Configures a domain, optionally transferring it to a new owner.
      * @param name The name to configure.
      * @param price The price in wei to charge for subdomain registrations.
-     * @param referralFeePPM The referral fee to offer, in parts per million.
+     * @param referralAddress The referral fee to offer, in parts per million.
      * @param _owner The address to assign ownership of this domain to.
      * @param _transfer The address to set as the transfer address for the name
      *        when the permanent registrar is replaced. Can only be set to a non-zero
      *        value once.
      */
-    function configureDomainFor(string memory name, uint price, uint referralFeePPM, address payable _owner, address _transfer) public {
+    function configureDomainFor(string memory name, uint price, address payable referralAddress, address payable _owner, address _transfer) public owner_only(name) {
         bytes32 label = keccak256(bytes(name));
         Domain storage domain = domains[label];
 
-        if (BaseRegistrar(registrar).ownerOf(uint256(label)) != address(this)) {
-             BaseRegistrar(registrar).transferFrom(msg.sender, address(this), uint256(label));
-             BaseRegistrar(registrar).reclaim(uint256(label), address(this));
+        if (base.ownerOf(uint256(label)) != address(this)) {
+            base.reclaim(uint256(label), address(this));
+            base.transferFrom(msg.sender, address(this), uint256(label));
         }
 
         if (domain.owner != _owner) {
@@ -110,7 +120,8 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
         }
 
         domain.price = price;
-        domain.referralFeePPM = referralFeePPM;
+        domain.referralFeePPM = 0;
+        domain.referralAddress = referralAddress;
 
         emit DomainConfigured(label);
     }
@@ -120,7 +131,7 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
      * May only be called by the owner.
      * @param name The name of the domain to unlist.
      */
-    function unlistDomain(string memory name) public owner_only(keccak256(bytes(name))) {
+    function unlistDomain(string memory name) public owner_only(name) {
         bytes32 label = keccak256(bytes(name));
         Domain storage domain = domains[label];
         emit DomainUnlisted(label);
@@ -140,16 +151,16 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
      * @return rent The rent to retain a subdomain, in wei per second.
      * @return referralFeePPM The referral fee for the dapp, in ppm.
      */
-    function query(bytes32 label, string calldata subdomain) external view returns (string memory domain, uint price, uint rent, uint referralFeePPM) {
+    function query(bytes32 label, string calldata subdomain) external view returns (string memory domain, uint price, uint rent, address referralAddress) {
         bytes32 node = keccak256(abi.encodePacked(TLD_NODE, label));
         bytes32 subnode = keccak256(abi.encodePacked(node, keccak256(bytes(subdomain))));
 
         if (ens.owner(subnode) != address(0x0)) {
-            return ('', 0, 0, 0);
+            return ('', 0, 0, address(0x0));
         }
 
         Domain storage data = domains[label];
-        return (data.name, data.price, 0, data.referralFeePPM);
+        return (data.name, data.price, 0, data.referralAddress);
     }
 
     /**
@@ -168,7 +179,7 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
 
         Domain storage domain = domains[label];
 
-        uint price = prices.price(subdomain, base.nameExpires(uint256(subdomainLabel)), duration);
+        uint price = prices.price(subdomain, nameExpires(uint256(subdomainLabel)), duration);
 
         // Domain must be available for registration
         require(keccak256(bytes(domain.name)) == label);
@@ -186,7 +197,7 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
 
         // Send the registration fee
         if (total > 0) {
-            domain.owner.transfer(total);
+            domain.referralAddress.transfer(total);
         }
 
         // Register the domain
@@ -207,7 +218,7 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
      * @dev Migrates the domain to a new registrar.
      * @param name The name of the domain to migrate.
      */
-    function migrate(string memory name) public owner_only(keccak256(bytes(name))) {
+    function migrate(string memory name) public owner_only(name) {
         require(stopped);
         require(migration != address(0x0));
 
@@ -219,7 +230,7 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
         EthRegistrarSubdomainRegistrar(migration).configureDomainFor(
             domain.name,
             domain.price,
-            domain.referralFeePPM,
+            domain.referralAddress,
             domain.owner,
             address(0x0)
         );

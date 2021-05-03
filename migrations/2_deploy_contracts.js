@@ -142,15 +142,20 @@ async function registerCoreDomains(ens, registrar, ownedResolver, subdomainRegis
     console.log('ownedResolver.setAddr crazy.one');
     await sleep(WAIT_TIMEOUT);
 
-    registrar.reclaim(utils.sha3('crazy'), subdomainRegistrar.address);
+    registrar.approve(subdomainRegistrar.address, utils.sha3('crazy'));
 
-    console.log('registrar.reclaim crazy');
+    console.log('registrar.approve crazy');
     await sleep(WAIT_TIMEOUT);
 
-    registrar.transferFrom(accounts[0], subdomainRegistrar.address, utils.sha3('crazy'));
-
-    console.log('registrar.transferFrom crazy');
-    await sleep(WAIT_TIMEOUT);
+    // registrar.reclaim(utils.sha3('crazy'), subdomainRegistrar.address);
+    //
+    // console.log('registrar.reclaim crazy');
+    // await sleep(WAIT_TIMEOUT);
+    //
+    // registrar.transferFrom(accounts[0], subdomainRegistrar.address, utils.sha3('crazy'));
+    //
+    // console.log('registrar.transferFrom crazy');
+    // await sleep(WAIT_TIMEOUT);
 
     await registrar.removeController(accounts[0], {from: accounts[0]});
 

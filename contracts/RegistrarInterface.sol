@@ -8,7 +8,7 @@ contract RegistrarInterface {
     event RentPaid(bytes32 indexed label, string subdomain, uint amount, uint expirationDate);
 
     // InterfaceID of these four methods is 0xc1b15f5a
-    function query(bytes32 label, string calldata subdomain) external view returns (string memory domain, uint signupFee, uint rent, uint referralFeePPM);
+    function query(bytes32 label, string calldata subdomain) external view returns (string memory domain, uint signupFee, uint rent, address referralAddress);
     function register(bytes32 label, string calldata subdomain, address owner, uint duration, string calldata url, address resolver) external payable;
 
     function rentDue(bytes32 label, string calldata subdomain) external view returns (uint timestamp);
