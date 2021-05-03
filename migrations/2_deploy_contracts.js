@@ -112,7 +112,7 @@ async function registerCoreDomains(ens, registrar, ownedResolver, subdomainRegis
     console.log('registrar addController accounts[0]');
     await sleep(WAIT_TIMEOUT);
 
-    await registrar.register(utils.sha3('resolver'), accounts[0], 31536000, {from: accounts[0]});
+    await registrar.register(utils.sha3('resolver'), accounts[0], 315360000, {from: accounts[0]});
 
     console.log('register resolver');
     await sleep(WAIT_TIMEOUT);
@@ -127,7 +127,7 @@ async function registerCoreDomains(ens, registrar, ownedResolver, subdomainRegis
     console.log('ownedResolver.setAddr resolver.one');
     await sleep(WAIT_TIMEOUT);
 
-    await registrar.register(utils.sha3('crazy'), accounts[0], 31536000, {from: accounts[0]});
+    await registrar.register(utils.sha3('crazy'), accounts[0], 315360000, {from: accounts[0]});
 
     console.log('registrar.register crazy');
     await sleep(WAIT_TIMEOUT);

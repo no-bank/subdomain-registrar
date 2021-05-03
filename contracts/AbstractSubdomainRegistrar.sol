@@ -63,6 +63,10 @@ contract AbstractSubdomainRegistrar is RegistrarInterface {
         return expiries[id] + GRACE_PERIOD < now;
     }
 
+    function notExpire(uint256 id) public view returns(bool) {
+        return expiries[id] > now;
+    }
+
     function twitter(bytes32 node) external view returns (string memory) {
         uint256 tokenId = uint256(node);
 
@@ -71,12 +75,12 @@ contract AbstractSubdomainRegistrar is RegistrarInterface {
         return _twitterURI;
     }
 
-    function _setTwitterURI(string memory name, string memory _tokenURI) public owner_only(name) {
-        bytes32 label = keccak256(bytes(name));
-        bytes32 node = keccak256(abi.encodePacked(TLD_NODE, label));
+    function _setTwitterURI(bytes32 node, string memory _tokenURI) public {
+        require(ens.owner(node) == msg.sender);
 
         uint256 tokenId = uint256(node);
-        require(available(tokenId));
+
+        require(notExpire(tokenId));
 
         _tokenURIs[tokenId] = _tokenURI;
     }
@@ -102,6 +106,18 @@ contract AbstractSubdomainRegistrar is RegistrarInterface {
 
         // Pass ownership of the new subdomain to the registrant
         ens.setOwner(subnode, subdomainOwner);
+    }
+
+    function _renew(bytes32 node, bytes32 label, uint duration) internal returns(uint expire) {
+        bytes32 subnode = keccak256(abi.encodePacked(node, label));
+
+        require(ens.owner(subnode) == msg.sender);
+
+        uint256 tokenId = uint256(subnode);
+
+        expiries[tokenId] = expiries[tokenId] + duration;
+
+        return expiries[tokenId];
     }
 
     function supportsInterface(bytes4 interfaceID) public pure returns (bool) {

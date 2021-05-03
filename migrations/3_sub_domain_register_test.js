@@ -40,6 +40,9 @@ module.exports = async function(deployer, network, accounts) {
     console.log(domainInfo[2].toNumber());
     console.log(domainInfo[3]);
 
+    console.log('Owner crazy.one: ', await ens.owner(namehash.hash('crazy.one')));
+    console.log('Resolver crazy.one: ', await resolver.addr(namehash.hash('crazy.one')));
+
     const rentPriceSub = await subdomainRegistrar.rentPrice('foo-12345ii', duration);
 
     console.log('rentPrice: ', Number(rentPriceSub) / 1e18);
@@ -51,13 +54,39 @@ module.exports = async function(deployer, network, accounts) {
 
     console.log('9 - subdomainRegistrar - SUCCESS');
 
-    console.log(await ens.owner(namehash.hash('crazy.one')));
-    console.log(await resolver.addr(namehash.hash('crazy.one')), accounts[0]);
     console.log(await ens.owner(namehash.hash('foo-12345ii.crazy.one')), accounts[1]);
     console.log(await resolver.addr(namehash.hash('foo-12345ii.crazy.one')), accounts[1]);
     console.log(await subdomainRegistrar.twitter(namehash.hash('foo-12345ii.crazy.one')));
 
-    // await subdomainRegistrar._setTwitterURI('foo-12345ii.crazy', 'new_twitter_2', {from: accounts[1]});
+    try {
+        await subdomainRegistrar._setTwitterURI(namehash.hash('foo-12345ii.crazy.one'), 'new_twitter_2', {from: accounts[0]});
+        return;
+    } catch (e) {
+        console.log('subdomainRegistrar._setTwitterURI: Failed from wrong account - true')
+    }
+
+    await subdomainRegistrar._setTwitterURI(namehash.hash('foo-12345ii.crazy.one'), 'new_twitter_2', {from: accounts[1]});
 
     console.log(await subdomainRegistrar.twitter(namehash.hash('foo-12345ii.crazy.one')));
+
+    console.log('nameExpires', new Date(Number(await subdomainRegistrar.nameExpires(namehash.hash('foo-12345ii.crazy.one'))) * 1000));
+
+    try {
+        await subdomainRegistrar.renew(sha3(domain), 'foo-12345ii', duration, {
+            from: accounts[0],
+            value: utils.toBN(rentPriceSub)
+        });
+        return;
+    } catch (e) {
+        console.log('subdomainRegistrar.renew: Failed from wrong account - true')
+    }
+
+    await subdomainRegistrar.renew(sha3(domain), 'foo-12345ii', duration, {
+        from: accounts[1],
+        value: utils.toBN(rentPriceSub)
+    });
+
+    console.log('nameExpires', new Date(Number(await subdomainRegistrar.nameExpires(namehash.hash('foo-12345ii.crazy.one'))) * 1000));
+
+    console.log('--- ALL tests SUCCESS!! ---');
 }

@@ -40,6 +40,9 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
         uint referralFeePPM;
     }
 
+    event NewPriceOracle(address indexed oracle);
+    event NameRenewed(bytes32 indexed label, string subdomain, uint cost, uint expires);
+
     mapping (bytes32 => Domain) domains;
 
     PriceOracle prices;
@@ -48,9 +51,39 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
         prices = _prices;
     }
 
+    function setPriceOracle(PriceOracle _prices) public registrar_owner_only {
+        prices = _prices;
+        emit NewPriceOracle(address(prices));
+    }
+
     function rentPrice(string memory name, uint duration) view public returns(uint) {
         bytes32 hash = keccak256(bytes(name));
         return prices.price(name, nameExpires(uint256(hash)), duration);
+    }
+
+    function renew(bytes32 label, string calldata subdomain, uint duration) external payable {
+        bytes32 domainNode = keccak256(abi.encodePacked(TLD_NODE, label));
+        bytes32 subdomainLabel = keccak256(bytes(subdomain));
+
+        require(ens.owner(keccak256(abi.encodePacked(domainNode, subdomainLabel))) == msg.sender);
+
+        Domain storage domain = domains[label];
+
+        uint cost = prices.price(subdomain, nameExpires(uint256(subdomainLabel)), duration);
+
+        require(msg.value >= cost);
+
+        uint expires = _renew(domainNode, subdomainLabel, duration);
+
+        if(msg.value > cost) {
+            msg.sender.transfer(msg.value - cost);
+        }
+
+        if (cost > 0) {
+            domain.referralAddress.transfer(cost);
+        }
+
+        emit NameRenewed(label, subdomain, cost, expires);
     }
 
     /**
