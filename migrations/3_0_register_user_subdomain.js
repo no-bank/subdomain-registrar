@@ -10,8 +10,6 @@ const utils = require('web3-utils');
 const sleep = (sec) => new Promise(resolve => setTimeout(resolve, 1000 * sec))
 
 module.exports = async function(deployer, network, accounts) {
-    console.log('Resolver address: ', PublicResolver.address);
-
     console.log('Owner account: ', accounts[0]);
     console.log('User account: ', accounts[1]);
 
@@ -46,7 +44,7 @@ module.exports = async function(deployer, network, accounts) {
         const address = await resolver.addr(subnode);
         const available = await subdomainRegistrar.available(subnode);
         const nameExpires = Number(await subdomainRegistrar.nameExpires(subnode)) * 1000;
-        console.log(`---- ${subdomain}.${domain} registered: `)
+        console.log(`---- ${subdomain}.${domain} registered: `);
         console.log('owner: ', owner, owner === subdomainOwner);
         console.log('address: ', address, address === subdomainOwner);
         console.log('available: ', available, available === false);
