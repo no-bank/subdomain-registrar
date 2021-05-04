@@ -31,7 +31,6 @@ import "@ensdomains/ethregistrar/contracts/PriceOracle.sol";
  * fail if this is not the case.
  */
 contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
-
     struct Domain {
         string name;
         address payable owner;
@@ -48,7 +47,7 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
 
     PriceOracle prices;
 
-    constructor(ENS ens, PriceOracle _prices, BaseRegistrar _base) AbstractSubdomainRegistrar(ens, _base) public {
+    constructor(ENS ens, PriceOracle _prices, SubdomainStorage _storage) AbstractSubdomainRegistrar(ens, _storage) public {
         prices = _prices;
     }
 
@@ -74,7 +73,9 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
 
         require(msg.value >= cost);
 
-        uint expires = _renew(domainNode, subdomainLabel, duration);
+        bytes32 subnode = keccak256(abi.encodePacked(domainNode, subdomainLabel));
+
+        uint expires = subStorage.renew(subnode, duration);
 
         if(msg.value > cost) {
             msg.sender.transfer(msg.value - cost);
@@ -139,9 +140,9 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
         bytes32 label = keccak256(bytes(name));
         Domain storage domain = domains[label];
 
-        if (base.ownerOf(uint256(label)) != address(this)) {
-            base.reclaim(uint256(label), address(this));
-            base.transferFrom(msg.sender, address(this), uint256(label));
+        if (BaseRegistrar(registrar).ownerOf(uint256(label)) != address(this)) {
+            BaseRegistrar(registrar).reclaim(uint256(label), address(this));
+            BaseRegistrar(registrar).transferFrom(msg.sender, address(this), uint256(label));
         }
 
         if (domain.owner != _owner) {
@@ -159,6 +160,27 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
         domain.minDuration = 31536000;
 
         emit DomainConfigured(label);
+    }
+
+    function setReferralAddress(string memory name, address payable _referralAddress) public {
+        bytes32 label = keccak256(bytes(name));
+
+        require(domains[label].owner == msg.sender);
+
+        domains[label].referralAddress = _referralAddress;
+    }
+
+    function setMinDuration(string memory name, uint duration) public {
+        bytes32 label = keccak256(bytes(name));
+
+        require(domains[label].owner == msg.sender);
+
+        domains[label].minDuration = duration;
+    }
+
+    function minDuration(string memory name) public view returns (uint) {
+        bytes32 label = keccak256(bytes(name));
+        return domains[label].minDuration;
     }
 
     /**
@@ -231,14 +253,14 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
             subdomainOwner = msg.sender;
         }
 
-        doRegistration(domainNode, subdomainLabel, duration, url, subdomainOwner, Resolver(resolver));
+        uint expires = doRegistration(domainNode, subdomainLabel, duration, url, subdomainOwner, Resolver(resolver));
 
         // Send the registration fee
         if (price > 0) {
             domain.referralAddress.transfer(price);
         }
 
-        emit NewRegistration(label, subdomain, subdomainOwner, price);
+        emit NewRegistration(label, subdomain, subdomainOwner, expires);
     }
 
     function rentDue(bytes32 label, string calldata subdomain) external view returns (uint timestamp) {

@@ -4,7 +4,7 @@ contract RegistrarInterface {
     event OwnerChanged(bytes32 indexed label, address indexed oldOwner, address indexed newOwner);
     event DomainConfigured(bytes32 indexed label);
     event DomainUnlisted(bytes32 indexed label);
-    event NewRegistration(bytes32 indexed label, string subdomain, address indexed owner, uint price);
+    event NewRegistration(bytes32 indexed label, string subdomain, address indexed owner, uint expires);
     event RentPaid(bytes32 indexed label, string subdomain, uint amount, uint expirationDate);
 
     // InterfaceID of these four methods is 0xc1b15f5a

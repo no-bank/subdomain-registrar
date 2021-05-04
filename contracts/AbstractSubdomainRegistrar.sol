@@ -4,6 +4,7 @@ import "@ensdomains/ethregistrar/contracts/BaseRegistrar.sol";
 import "@ensdomains/ens/contracts/ENS.sol";
 import "./Resolver.sol";
 import "./RegistrarInterface.sol";
+import "./SubdomainStorage.sol";
 
 contract AbstractSubdomainRegistrar is RegistrarInterface {
 
@@ -11,22 +12,14 @@ contract AbstractSubdomainRegistrar is RegistrarInterface {
     // bytes32 constant public TLD_NODE = 0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
     bytes32 constant public TLD_NODE = 0x30f9ae3b1c4766476d11e2bacd21f9dff2c59670d8b8a74a88ebc22aec7020b9;
 
-    uint public GRACE_PERIOD = 90 days;
-
     bool public stopped = false;
     address public registrarOwner;
     address public migration;
 
     address public registrar;
 
-    // A map of expiry times
-    mapping(uint256=>uint) expiries;
-
-    // Optional mapping for token URIs
-    mapping(uint256 => string) private _tokenURIs;
-
     ENS public ens;
-    BaseRegistrar public base;
+    SubdomainStorage public subStorage;
 
     modifier owner_only(string memory label) {
         require(owner(label) == msg.sender);
@@ -45,55 +38,42 @@ contract AbstractSubdomainRegistrar is RegistrarInterface {
 
     event DomainTransferred(bytes32 indexed label, string name);
 
-    constructor(ENS _ens, BaseRegistrar _base) public {
+    constructor(ENS _ens, SubdomainStorage _storage) public {
         ens = _ens;
-        base = _base;
+        subStorage = _storage;
         registrar = ens.owner(TLD_NODE);
         registrarOwner = msg.sender;
     }
 
     // Returns the expiration timestamp of the specified id.
     function nameExpires(uint256 id) public view returns(uint) {
-        return expiries[id];
+        return subStorage.nameExpires(id);
     }
 
     // Returns true iff the specified name is available for registration.
     function available(uint256 id) public view returns(bool) {
-        // Not available if it's registered here or in its grace period.
-        return expiries[id] + GRACE_PERIOD < now;
+        return subStorage.available(id);
     }
 
     function notExpire(uint256 id) public view returns(bool) {
-        return expiries[id] > now;
+        return subStorage.notExpire(id);
     }
 
     function twitter(bytes32 node) external view returns (string memory) {
-        uint256 tokenId = uint256(node);
-
-        string memory _twitterURI = _tokenURIs[tokenId];
-
-        return _twitterURI;
+        return subStorage.twitter(node);
     }
 
     function _setTwitterURI(bytes32 node, string memory _tokenURI) public {
         require(ens.owner(node) == msg.sender);
 
-        uint256 tokenId = uint256(node);
-
-        require(notExpire(tokenId));
-
-        _tokenURIs[tokenId] = _tokenURI;
+        return subStorage._setTwitterURI(node, _tokenURI);
     }
 
-    function doRegistration(bytes32 node, bytes32 label, uint duration, string memory _tokenURI, address subdomainOwner, Resolver resolver) internal {
+    function doRegistration(bytes32 node, bytes32 label, uint duration, string memory _tokenURI, address subdomainOwner, Resolver resolver) internal returns(uint) {
         bytes32 subnode = keccak256(abi.encodePacked(node, label));
         uint256 tokenId = uint256(subnode);
 
-        require(available(tokenId));
-        require(now + duration + GRACE_PERIOD > now + GRACE_PERIOD); // Prevent future overflow
-
-        expiries[tokenId] = now + duration;
-        _tokenURIs[tokenId] = _tokenURI;
+        uint expires = subStorage.doRegistration(tokenId, duration, _tokenURI);
 
         // Get the subdomain so we can configure it
         ens.setSubnodeOwner(node, label, address(this));
@@ -106,18 +86,8 @@ contract AbstractSubdomainRegistrar is RegistrarInterface {
 
         // Pass ownership of the new subdomain to the registrant
         ens.setOwner(subnode, subdomainOwner);
-    }
 
-    function _renew(bytes32 node, bytes32 label, uint duration) internal returns(uint expire) {
-        bytes32 subnode = keccak256(abi.encodePacked(node, label));
-
-        require(ens.owner(subnode) == msg.sender);
-
-        uint256 tokenId = uint256(subnode);
-
-        expiries[tokenId] = expiries[tokenId] + duration;
-
-        return expiries[tokenId];
+        return expires;
     }
 
     function supportsInterface(bytes4 interfaceID) public pure returns (bool) {
@@ -160,7 +130,7 @@ contract AbstractSubdomainRegistrar is RegistrarInterface {
     }
 
     function setGracePeriod(uint duration) public registrar_owner_only {
-        GRACE_PERIOD = duration;
+        return subStorage.setGracePeriod(duration);
     }
 
     /**

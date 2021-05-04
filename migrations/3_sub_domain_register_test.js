@@ -88,5 +88,22 @@ module.exports = async function(deployer, network, accounts) {
 
     console.log('nameExpires', new Date(Number(await subdomainRegistrar.nameExpires(namehash.hash('foo-12345ii.crazy.one'))) * 1000));
 
+    try {
+        await subdomainRegistrar.setReferralAddress(domain, accounts[1], { from: accounts[1] });
+        console.log('ERROR - can change referral from wrong account');
+        return ;
+    } catch (e) {
+        await subdomainRegistrar.setReferralAddress(domain, accounts[1], { from: accounts[0] });
+        const referral = await subdomainRegistrar.referralAddress(domain);
+        console.log('setReferralAddress - ', referral === accounts[1]);
+    }
+
+    await subdomainRegistrar.setMinDuration(domain, 1, { from: accounts[0] });
+
+    console.log('setMinDuration - success');
+
+    const minDuration = Number(await subdomainRegistrar.minDuration(domain));
+    console.log('minDuration changed', minDuration, minDuration === 1);
+
     console.log('--- ALL tests SUCCESS!! ---');
 }

@@ -10,6 +10,7 @@ const ReverseRegistrar = artifacts.require('@ensdomains/ens/ReverseRegistrar');
 const Root = artifacts.require('@ensdomains/root/Root');
 const DefaultReverseResolver = artifacts.require('@ensdomains/resolver/DefaultReverseResolver');
 const SubdomainRegistrar = artifacts.require("EthRegistrarSubdomainRegistrar");
+const SubdomainStorage = artifacts.require("SubdomainStorage");
 
 const utils = require('web3-utils');
 const namehash = require('eth-ens-namehash');
@@ -54,8 +55,13 @@ async function deploy(deployer, network, accounts) {
     await deployer.deploy(StablePriceOracle, dummyOracle.address, generatePricesArray());
     const priceOracle = await StablePriceOracle.deployed();
 
-    await deployer.deploy(SubdomainRegistrar, ens.address, priceOracle.address, registrar.address, {from: accounts[0]});
+    await deployer.deploy(SubdomainStorage, {from: accounts[0]});
+    const subdomainStorage = await SubdomainStorage.deployed();
+
+    await deployer.deploy(SubdomainRegistrar, ens.address, priceOracle.address, subdomainStorage.address, {from: accounts[0]});
     const subdomainRegistrar = await SubdomainRegistrar.deployed();
+
+    await subdomainStorage.addController(subdomainRegistrar.address, {from: accounts[0]});
 
     await registerCoreDomains(ens, registrar, ownedResolver, subdomainRegistrar, accounts, network);
 
