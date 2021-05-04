@@ -10,6 +10,11 @@ const utils = require('web3-utils');
 const sleep = (sec) => new Promise(resolve => setTimeout(resolve, 1000 * sec))
 
 module.exports = async function(deployer, network, accounts) {
+    if(network !== 'local') {
+        console.log('---- ONLY FOR LOCAL');
+        return;
+    }
+
     console.log('Resolver address: ', PublicResolver.address);
 
     console.log('Owner account: ', accounts[0]);

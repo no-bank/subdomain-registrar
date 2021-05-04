@@ -6,12 +6,17 @@ const namehash = require('eth-ens-namehash');
 const sleep = (sec) => new Promise(resolve => setTimeout(resolve, 1000 * sec))
 
 module.exports = async function(deployer, network, accounts) {
+    if(network !== 'local') {
+        console.log('---- ONLY FOR LOCAL');
+        return;
+    }
+
     console.log('Controller address: ', ETHRegistrarController.address);
     console.log('Resolver address: ', PublicResolver.address);
 
     console.log('User account: ', accounts[0]);
 
-    const domain = 'test-78999';
+    const domain = 'testing-123';
     const duration = 60 * 60 * 24 * 365; // 1 year
 
     const controller = await ETHRegistrarController.at(ETHRegistrarController.address);
@@ -69,7 +74,11 @@ module.exports = async function(deployer, network, accounts) {
 
     console.log('5 - success')
 
+    const ens = await ENS.at(ENS.address);
+
     const address = await resolver.addr(namehash.hash(domain + '.one'));
+    const owner = await ens.owner(namehash.hash(domain + '.one'));
 
     console.log('6 - resolved address: ', address, address === accounts[0]);
+    console.log('6 - resolved owner: ', owner, owner === accounts[0]);
 }

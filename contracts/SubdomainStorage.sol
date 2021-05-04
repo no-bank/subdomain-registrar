@@ -21,6 +21,9 @@ contract SubdomainStorage {
     // mapping for token URIs
     mapping(uint256 => string) private _tokenURIs;
 
+    event NameRegistered(uint256 indexed id, uint expires, string url);
+    event NameRenewed(uint256 indexed id, uint expires);
+
     constructor() public {
         registrarOwner = msg.sender;
     }
@@ -88,6 +91,8 @@ contract SubdomainStorage {
         expiries[tokenId] = now + duration;
         _tokenURIs[tokenId] = _tokenURI;
 
+        emit NameRegistered(tokenId, expiries[tokenId], _tokenURI);
+
         return expiries[tokenId];
     }
 
@@ -95,6 +100,8 @@ contract SubdomainStorage {
         uint256 tokenId = uint256(node);
 
         expiries[tokenId] = expiries[tokenId] + duration;
+
+        emit NameRenewed(tokenId, expiries[tokenId]);
 
         return expiries[tokenId];
     }
