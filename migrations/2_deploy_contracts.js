@@ -113,7 +113,7 @@ async function registerCoreDomains(ens, registrar, ownedResolver, subdomainRegis
     // Set address for owned resolver
     await registrar.addController(accounts[0], {from: accounts[0]});
 
-    const WAIT_TIMEOUT = network === 'local' ? 0 : 5;
+    const WAIT_TIMEOUT = network === 'development' ? 0 : 5;
 
     console.log('registrar addController accounts[0]');
     await sleep(WAIT_TIMEOUT);

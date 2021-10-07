@@ -18,7 +18,7 @@ module.exports = async function(deployer, network, accounts) {
     const subdomainRegistrar = await SubdomainRegistrar.at(SubdomainRegistrar.address);
     const ens = await ENS.at(ENS.address);
 
-    const WAIT_TIMEOUT = network === 'local' ? 0 : 5;
+    const WAIT_TIMEOUT = network === 'development' ? 0 : 5;
 
     const durationDelta = 1000 * 300;
 
@@ -54,7 +54,7 @@ module.exports = async function(deployer, network, accounts) {
     const duration = 60 * 60 * 24 * 365; // 1 year
 
     const start = Date.now();
-    await registerDomain('crazy.one', 'yuriy', accounts[1], duration, '', accounts[0]);
+    await registerDomain('crazy.one', 'yuriy', accounts[0], duration, '', accounts[0]);
     console.log('end: ', (Date.now() - start) / 1000);
 
     await subdomainStorage.removeController(accounts[0], {from: accounts[0]});
