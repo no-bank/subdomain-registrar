@@ -3,6 +3,10 @@ pragma solidity ^0.5.0;
 import "./AbstractSubdomainRegistrar.sol";
 import "@ensdomains/ethregistrar/contracts/PriceOracle.sol";
 
+// import "@ensdomains/ens-contracts/contracts/ethregistrar/PriceOracle.sol";
+
+// import "@ensdomains/ethregistrar/contracts/PriceOracle.sol";
+
 /**
  * @dev Implements an ENS registrar that sells subdomains on behalf of their owners.
  *
@@ -31,269 +35,342 @@ import "@ensdomains/ethregistrar/contracts/PriceOracle.sol";
  * fail if this is not the case.
  */
 contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
-    struct Domain {
-        string name;
-        address payable owner;
-        address payable referralAddress;
-        uint price;
-        uint referralFeePPM;
-        uint minDuration;
+  struct Domain {
+    string name;
+    address payable owner;
+    address payable referralAddress;
+    uint256 price;
+    uint256 referralFeePPM;
+    uint256 minDuration;
+  }
+
+  event NewPriceOracle(address indexed oracle);
+  event NameRenewed(
+    bytes32 indexed label,
+    string subdomain,
+    uint256 cost,
+    uint256 expires
+  );
+
+  mapping(bytes32 => Domain) domains;
+
+  PriceOracle prices;
+
+  constructor(
+    ENS ens,
+    PriceOracle _prices,
+    SubdomainStorage _storage
+  ) public AbstractSubdomainRegistrar(ens, _storage) {
+    prices = _prices;
+  }
+
+  function setPriceOracle(PriceOracle _prices) public registrar_owner_only {
+    prices = _prices;
+    emit NewPriceOracle(address(prices));
+  }
+
+  function rentPrice(string memory name, uint256 duration)
+    public
+    view
+    returns (uint256)
+  {
+    bytes32 hash = keccak256(bytes(name));
+    return prices.price(name, nameExpires(uint256(hash)), duration);
+  }
+
+  function renew(
+    bytes32 label,
+    string calldata subdomain,
+    uint256 duration
+  ) external payable {
+    bytes32 domainNode = keccak256(abi.encodePacked(TLD_NODE, label));
+    bytes32 subdomainLabel = keccak256(bytes(subdomain));
+
+    require(
+      ens.owner(keccak256(abi.encodePacked(domainNode, subdomainLabel))) ==
+        msg.sender
+    );
+
+    Domain storage domain = domains[label];
+
+    uint256 cost = prices.price(
+      subdomain,
+      nameExpires(uint256(subdomainLabel)),
+      duration
+    );
+
+    require(msg.value >= cost);
+
+    bytes32 subnode = keccak256(abi.encodePacked(domainNode, subdomainLabel));
+
+    uint256 expires = subStorage.renew(subnode, duration);
+
+    if (msg.value > cost) {
+      msg.sender.transfer(msg.value - cost);
     }
 
-    event NewPriceOracle(address indexed oracle);
-    event NameRenewed(bytes32 indexed label, string subdomain, uint cost, uint expires);
-
-    mapping (bytes32 => Domain) domains;
-
-    PriceOracle prices;
-
-    constructor(ENS ens, PriceOracle _prices, SubdomainStorage _storage) AbstractSubdomainRegistrar(ens, _storage) public {
-        prices = _prices;
+    if (cost > 0) {
+      domain.referralAddress.transfer(cost);
     }
 
-    function setPriceOracle(PriceOracle _prices) public registrar_owner_only {
-        prices = _prices;
-        emit NewPriceOracle(address(prices));
+    emit NameRenewed(label, subdomain, cost, expires);
+  }
+
+  /**
+   * @dev owner returns the address of the account that controls a domain.
+   *      Initially this is a null address. If the name has been
+   *      transferred to this contract, then the internal mapping is consulted
+   *      to determine who controls it. If the owner is not set,
+   *      the owner of the domain in the Registrar is returned.
+   * @param name The name string of the deed to check.
+   * @return The address owning the deed.
+   */
+  function owner(string memory name) public view returns (address) {
+    bytes32 label = keccak256(bytes(name));
+    bytes32 node = keccak256(abi.encodePacked(TLD_NODE, label));
+
+    if (domains[label].owner != address(0x0)) {
+      return domains[label].owner;
     }
 
-    function rentPrice(string memory name, uint duration) view public returns(uint) {
-        bytes32 hash = keccak256(bytes(name));
-        return prices.price(name, nameExpires(uint256(hash)), duration);
+    return ens.owner(node);
+  }
+
+  function referralAddress(string memory name) public view returns (address) {
+    bytes32 label = keccak256(bytes(name));
+
+    return domains[label].referralAddress;
+  }
+
+  /**
+   * @dev Transfers internal control of a name to a new account. Does not update
+   *      ENS.
+   * @param name The name to transfer.
+   * @param newOwner The address of the new owner.
+   */
+  function transfer(string memory name, address payable newOwner)
+    public
+    owner_only(name)
+  {
+    bytes32 label = keccak256(bytes(name));
+    emit OwnerChanged(label, domains[label].owner, newOwner);
+    domains[label].owner = newOwner;
+  }
+
+  /**
+   * @dev Configures a domain, optionally transferring it to a new owner.
+   * @param name The name to configure.
+   * @param price The price in wei to charge for subdomain registrations.
+   * @param referralAddress The referral fee to offer, in parts per million.
+   * @param _owner The address to assign ownership of this domain to.
+   * @param _transfer The address to set as the transfer address for the name
+   *        when the permanent registrar is replaced. Can only be set to a non-zero
+   *        value once.
+   */
+  function configureDomainFor(
+    string memory name,
+    uint256 price,
+    address payable referralAddress,
+    address payable _owner,
+    address _transfer
+  ) public owner_only(name) {
+    bytes32 label = keccak256(bytes(name));
+    Domain storage domain = domains[label];
+
+    if (BaseRegistrar(registrar).ownerOf(uint256(label)) != address(this)) {
+      BaseRegistrar(registrar).reclaim(uint256(label), address(this));
+      BaseRegistrar(registrar).transferFrom(
+        msg.sender,
+        address(this),
+        uint256(label)
+      );
     }
 
-    function renew(bytes32 label, string calldata subdomain, uint duration) external payable {
-        bytes32 domainNode = keccak256(abi.encodePacked(TLD_NODE, label));
-        bytes32 subdomainLabel = keccak256(bytes(subdomain));
-
-        require(ens.owner(keccak256(abi.encodePacked(domainNode, subdomainLabel))) == msg.sender);
-
-        Domain storage domain = domains[label];
-
-        uint cost = prices.price(subdomain, nameExpires(uint256(subdomainLabel)), duration);
-
-        require(msg.value >= cost);
-
-        bytes32 subnode = keccak256(abi.encodePacked(domainNode, subdomainLabel));
-
-        uint expires = subStorage.renew(subnode, duration);
-
-        if(msg.value > cost) {
-            msg.sender.transfer(msg.value - cost);
-        }
-
-        if (cost > 0) {
-            domain.referralAddress.transfer(cost);
-        }
-
-        emit NameRenewed(label, subdomain, cost, expires);
+    if (domain.owner != _owner) {
+      domain.owner = _owner;
     }
 
-    /**
-     * @dev owner returns the address of the account that controls a domain.
-     *      Initially this is a null address. If the name has been
-     *      transferred to this contract, then the internal mapping is consulted
-     *      to determine who controls it. If the owner is not set,
-     *      the owner of the domain in the Registrar is returned.
-     * @param name The name string of the deed to check.
-     * @return The address owning the deed.
-     */
-    function owner(string memory name) public view returns (address) {
-        bytes32 label = keccak256(bytes(name));
-        bytes32 node = keccak256(abi.encodePacked(TLD_NODE, label));
-
-        if (domains[label].owner != address(0x0)) {
-            return domains[label].owner;
-        }
-
-        return ens.owner(node);
+    if (keccak256(bytes(domain.name)) != label) {
+      // New listing
+      domain.name = name;
     }
 
-    function referralAddress(string memory name) public view returns (address) {
-        bytes32 label = keccak256(bytes(name));
+    domain.price = price;
+    domain.referralFeePPM = 0;
+    domain.referralAddress = referralAddress;
+    domain.minDuration = 31536000;
 
-        return domains[label].referralAddress;
+    emit DomainConfigured(label);
+  }
+
+  function setReferralAddress(
+    string memory name,
+    address payable _referralAddress
+  ) public {
+    bytes32 label = keccak256(bytes(name));
+
+    require(domains[label].owner == msg.sender);
+
+    domains[label].referralAddress = _referralAddress;
+  }
+
+  function setMinDuration(string memory name, uint256 duration) public {
+    bytes32 label = keccak256(bytes(name));
+
+    require(domains[label].owner == msg.sender);
+
+    domains[label].minDuration = duration;
+  }
+
+  function minDuration(string memory name) public view returns (uint256) {
+    bytes32 label = keccak256(bytes(name));
+    return domains[label].minDuration;
+  }
+
+  /**
+   * @dev Unlists a domain
+   * May only be called by the owner.
+   * @param name The name of the domain to unlist.
+   */
+  function unlistDomain(string memory name) public owner_only(name) {
+    bytes32 label = keccak256(bytes(name));
+    Domain storage domain = domains[label];
+    emit DomainUnlisted(label);
+
+    domain.name = "";
+    domain.price = 0;
+    domain.referralFeePPM = 0;
+  }
+
+  /**
+   * @dev Returns information about a subdomain.
+   * @param label The label hash for the domain.
+   * @param subdomain The label for the subdomain.
+   * @return domain The name of the domain, or an empty string if the subdomain
+   *                is unavailable.
+   * @return price The price to register a subdomain, in wei.
+   * @return rent The rent to retain a subdomain, in wei per second.
+   * @return referralFeePPM The referral fee for the dapp, in ppm.
+   */
+  function query(bytes32 label, string calldata subdomain)
+    external
+    view
+    returns (
+      string memory domain,
+      uint256 price,
+      uint256 rent,
+      address referralAddress
+    )
+  {
+    bytes32 node = keccak256(abi.encodePacked(TLD_NODE, label));
+    bytes32 subnode = keccak256(
+      abi.encodePacked(node, keccak256(bytes(subdomain)))
+    );
+
+    if (ens.owner(subnode) != address(0x0)) {
+      return ("", 0, 0, address(0x0));
     }
 
-    /**
-     * @dev Transfers internal control of a name to a new account. Does not update
-     *      ENS.
-     * @param name The name to transfer.
-     * @param newOwner The address of the new owner.
-     */
-    function transfer(string memory name, address payable newOwner) public owner_only(name) {
-        bytes32 label = keccak256(bytes(name));
-        emit OwnerChanged(label, domains[label].owner, newOwner);
-        domains[label].owner = newOwner;
+    Domain storage data = domains[label];
+    return (data.name, data.price, 0, data.referralAddress);
+  }
+
+  /**
+   * @dev Registers a subdomain.
+   * @param label The label hash of the domain to register a subdomain of.
+   * @param subdomain The desired subdomain label.
+   * @param _subdomainOwner The account that should own the newly configured subdomain.
+   */
+  function register(
+    bytes32 label,
+    string calldata subdomain,
+    address _subdomainOwner,
+    uint256 duration,
+    string calldata url,
+    address resolver
+  ) external payable not_stopped {
+    address subdomainOwner = _subdomainOwner;
+    bytes32 domainNode = keccak256(abi.encodePacked(TLD_NODE, label));
+    bytes32 subdomainLabel = keccak256(bytes(subdomain));
+
+    Domain storage domain = domains[label];
+
+    require(duration >= domain.minDuration);
+
+    uint256 price = prices.price(
+      subdomain,
+      nameExpires(uint256(subdomainLabel)),
+      duration
+    );
+
+    // Domain must be available for registration
+    require(keccak256(bytes(domain.name)) == label);
+
+    // User must have paid enough
+    require(msg.value >= price);
+
+    // Send any extra back
+    if (msg.value > price) {
+      msg.sender.transfer(msg.value - price);
     }
 
-    /**
-     * @dev Configures a domain, optionally transferring it to a new owner.
-     * @param name The name to configure.
-     * @param price The price in wei to charge for subdomain registrations.
-     * @param referralAddress The referral fee to offer, in parts per million.
-     * @param _owner The address to assign ownership of this domain to.
-     * @param _transfer The address to set as the transfer address for the name
-     *        when the permanent registrar is replaced. Can only be set to a non-zero
-     *        value once.
-     */
-    function configureDomainFor(string memory name, uint price, address payable referralAddress, address payable _owner, address _transfer) public owner_only(name) {
-        bytes32 label = keccak256(bytes(name));
-        Domain storage domain = domains[label];
-
-        if (BaseRegistrar(registrar).ownerOf(uint256(label)) != address(this)) {
-            BaseRegistrar(registrar).reclaim(uint256(label), address(this));
-            BaseRegistrar(registrar).transferFrom(msg.sender, address(this), uint256(label));
-        }
-
-        if (domain.owner != _owner) {
-            domain.owner = _owner;
-        }
-
-        if (keccak256(bytes(domain.name)) != label) {
-            // New listing
-            domain.name = name;
-        }
-
-        domain.price = price;
-        domain.referralFeePPM = 0;
-        domain.referralAddress = referralAddress;
-        domain.minDuration = 31536000;
-
-        emit DomainConfigured(label);
+    // Register the domain
+    if (subdomainOwner == address(0x0)) {
+      subdomainOwner = msg.sender;
     }
 
-    function setReferralAddress(string memory name, address payable _referralAddress) public {
-        bytes32 label = keccak256(bytes(name));
+    uint256 expires = doRegistration(
+      domainNode,
+      subdomainLabel,
+      duration,
+      url,
+      subdomainOwner,
+      Resolver(resolver)
+    );
 
-        require(domains[label].owner == msg.sender);
-
-        domains[label].referralAddress = _referralAddress;
+    // Send the registration fee
+    if (price > 0) {
+      domain.referralAddress.transfer(price);
     }
 
-    function setMinDuration(string memory name, uint duration) public {
-        bytes32 label = keccak256(bytes(name));
+    emit NewRegistration(label, subdomain, subdomainOwner, expires);
+  }
 
-        require(domains[label].owner == msg.sender);
+  function rentDue(bytes32 label, string calldata subdomain)
+    external
+    view
+    returns (uint256 timestamp)
+  {
+    return 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
+  }
 
-        domains[label].minDuration = duration;
-    }
+  /**
+   * @dev Migrates the domain to a new registrar.
+   * @param name The name of the domain to migrate.
+   */
+  function migrate(string memory name) public owner_only(name) {
+    require(stopped);
+    require(migration != address(0x0));
 
-    function minDuration(string memory name) public view returns (uint) {
-        bytes32 label = keccak256(bytes(name));
-        return domains[label].minDuration;
-    }
+    bytes32 label = keccak256(bytes(name));
+    Domain storage domain = domains[label];
 
-    /**
-     * @dev Unlists a domain
-     * May only be called by the owner.
-     * @param name The name of the domain to unlist.
-     */
-    function unlistDomain(string memory name) public owner_only(name) {
-        bytes32 label = keccak256(bytes(name));
-        Domain storage domain = domains[label];
-        emit DomainUnlisted(label);
+    BaseRegistrar(registrar).approve(migration, uint256(label));
 
-        domain.name = '';
-        domain.price = 0;
-        domain.referralFeePPM = 0;
-    }
+    EthRegistrarSubdomainRegistrar(migration).configureDomainFor(
+      domain.name,
+      domain.price,
+      domain.referralAddress,
+      domain.owner,
+      address(0x0)
+    );
 
-    /**
-     * @dev Returns information about a subdomain.
-     * @param label The label hash for the domain.
-     * @param subdomain The label for the subdomain.
-     * @return domain The name of the domain, or an empty string if the subdomain
-     *                is unavailable.
-     * @return price The price to register a subdomain, in wei.
-     * @return rent The rent to retain a subdomain, in wei per second.
-     * @return referralFeePPM The referral fee for the dapp, in ppm.
-     */
-    function query(bytes32 label, string calldata subdomain) external view returns (string memory domain, uint price, uint rent, address referralAddress) {
-        bytes32 node = keccak256(abi.encodePacked(TLD_NODE, label));
-        bytes32 subnode = keccak256(abi.encodePacked(node, keccak256(bytes(subdomain))));
+    delete domains[label];
 
-        if (ens.owner(subnode) != address(0x0)) {
-            return ('', 0, 0, address(0x0));
-        }
+    emit DomainTransferred(label, name);
+  }
 
-        Domain storage data = domains[label];
-        return (data.name, data.price, 0, data.referralAddress);
-    }
-
-    /**
-     * @dev Registers a subdomain.
-     * @param label The label hash of the domain to register a subdomain of.
-     * @param subdomain The desired subdomain label.
-     * @param _subdomainOwner The account that should own the newly configured subdomain.
-     */
-    function register(bytes32 label, string calldata subdomain, address _subdomainOwner, uint duration, string calldata url, address resolver) external not_stopped payable {
-        address subdomainOwner = _subdomainOwner;
-        bytes32 domainNode = keccak256(abi.encodePacked(TLD_NODE, label));
-        bytes32 subdomainLabel = keccak256(bytes(subdomain));
-
-        Domain storage domain = domains[label];
-
-        require(duration >= domain.minDuration);
-
-        uint price = prices.price(subdomain, nameExpires(uint256(subdomainLabel)), duration);
-
-        // Domain must be available for registration
-        require(keccak256(bytes(domain.name)) == label);
-
-        // User must have paid enough
-        require(msg.value >= price);
-
-        // Send any extra back
-        if (msg.value > price) {
-            msg.sender.transfer(msg.value - price);
-        }
-
-        // Register the domain
-        if (subdomainOwner == address(0x0)) {
-            subdomainOwner = msg.sender;
-        }
-
-        uint expires = doRegistration(domainNode, subdomainLabel, duration, url, subdomainOwner, Resolver(resolver));
-
-        // Send the registration fee
-        if (price > 0) {
-            domain.referralAddress.transfer(price);
-        }
-
-        emit NewRegistration(label, subdomain, subdomainOwner, expires);
-    }
-
-    function rentDue(bytes32 label, string calldata subdomain) external view returns (uint timestamp) {
-        return 0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF;
-    }
-
-    /**
-     * @dev Migrates the domain to a new registrar.
-     * @param name The name of the domain to migrate.
-     */
-    function migrate(string memory name) public owner_only(name) {
-        require(stopped);
-        require(migration != address(0x0));
-
-        bytes32 label = keccak256(bytes(name));
-        Domain storage domain = domains[label];
-
-        BaseRegistrar(registrar).approve(migration, uint256(label));
-
-        EthRegistrarSubdomainRegistrar(migration).configureDomainFor(
-            domain.name,
-            domain.price,
-            domain.referralAddress,
-            domain.owner,
-            address(0x0)
-        );
-
-        delete domains[label];
-
-        emit DomainTransferred(label, name);
-    }
-
-    function payRent(bytes32 label, string calldata subdomain) external payable {
-        revert();
-    }
+  function payRent(bytes32 label, string calldata subdomain) external payable {
+    revert();
+  }
 }
