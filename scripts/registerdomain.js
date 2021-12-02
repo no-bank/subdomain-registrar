@@ -10,6 +10,10 @@ const BaseRegistrarImplementation = artifacts.require(
 const ETHRegistrarController = artifacts.require(
   "@ensdomains/ethregistrar/ETHRegistrarController"
 );
+
+const sleep = (sec) =>
+  new Promise((resolve) => setTimeout(resolve, 1000 * sec));
+
 /*
 curl -d '{
     "jsonrpc":"2.0",
@@ -37,13 +41,14 @@ function decodeReceiptLogs(logs) {
 module.exports = async function (callback) {
   var accounts = await web3.eth.getAccounts();
   console.log("Script started owner=", accounts[0]);
-  var ens_address = "0x51766DEF619112F76dF1FD7C361e0C6F47eE19de";
+  var ens_address = "0x51766DEF619112F76dF1FD7C361e0C6F47eE19de"; //testnet
+  //   var ens_address = "0x3fa4135B88cE1035Fed373F0801118a3340B37e7"; //mainnet
   var ens = await ENS.at(ens_address);
   var ownerCrazy = await ens.owner(namehash.hash("crazy.one"));
-  console.log("Owner", ownerCrazy);
+  console.log("ownerCrazy", ownerCrazy);
 
-  var ownerCrazy = await ens.owner(namehash.hash("sefwallet.one"));
-  console.log("Owner", ownerCrazy);
+  var ownerNobank = await ens.owner(namehash.hash("nobank-test1.one"));
+  console.log("ownerNobank", ownerNobank);
 
   const baseAddress = await ens.owner(ETH_NODE);
   console.log("Registrar ", baseAddress);
@@ -60,34 +65,56 @@ module.exports = async function (callback) {
   // 31536000
   try {
     var firstController = await ETHRegistrarController.at(
-      "0x82ee6596D7E30d384AF9F7A0552fCa55adD7A008"
+      "0x82ee6596D7E30d384AF9F7A0552fCa55adD7A008" //testnet
     );
     console.log(
       "Available on controller=",
-      await firstController.available("nobank")
+      await firstController.available("nobank1-test")
     );
 
     var duration = 31536000;
-    var secret = utils.sha3("quanta123");
-    var name = "nobank";
+    const salt = utils.sha3("quanta12345");
+    console.log("salt", salt);
+
+    // Generate a random value to mask our commitment
+
+    // const S = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    // const N = 32;
+    // const salt =
+    //   "0x" +
+    //   Array.from(crypto.randomFillSync(new Uint8Array(N)))
+    //     .map((n) => S[n % S.length])
+    //     .join("");
+
+    // console.log("salt", salt);
+
+    var name = "nobank-test1";
     var rentPrice = await firstController.rentPrice(name, duration);
     console.log("rentprice=", rentPrice.toString());
     //console.log("controller" , firstController)
     var commitment = await firstController.makeCommitment(
       name,
       accounts[0],
-      secret
+      salt
     );
     console.log("Commitment", commitment); //0x6277d2c63e21889a3bf487353df67becf5a8de8f09f33311bd184b66e394d34e
-    //var commit = await firstController.commit(commitment); //0xf14fcbc8
-    //console.log(commitment, commit);
+    var commit = await firstController.commit(commitment); //0xf14fcbc8
+    console.log(commitment, commit);
     //
     //0xf14fcbc86277d2c63e21889a3bf487353df67becf5a8de8f09f33311bd184b66e394d34e
 
-    //var tx = await firstController.register(name, accounts[0], duration, secret,{value: rentPrice.toString(), from: accounts[0], gas: 1500000});
-    //console.log(tx)
+    console.log("sleep 70sec");
+    await sleep(70);
+
+    var tx = await firstController.register(name, accounts[0], duration, salt, {
+      value: rentPrice.toString(),
+      from: accounts[0],
+      gas: 1500000,
+    });
+    console.log(tx);
+
     var tx = await ens.setResolver(
-      namehash.hash("nobank.one"),
+      namehash.hash("nobank-test1.one"),
       "0xf046697010509cc5BeB952eF4CeD1dE210a7977f",
       { from: accounts[0] }
     );
