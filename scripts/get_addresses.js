@@ -14,17 +14,19 @@ const ETHRegistrarController = artifacts.require(
 module.exports = async function (callback) {
   var accounts = await web3.eth.getAccounts();
   console.log("Script started owner=", accounts[0]);
-  var ens_address = "0x3fa4135B88cE1035Fed373F0801118a3340B37e7"; //mainnet
-  var controller = "0xbed36523cc78c8093cd0e4a6730e4c60bdc48b05";
+  //   var ens_address = "0x3fa4135B88cE1035Fed373F0801118a3340B37e7"; //mainnet
+
+  var ens_address = "0x51766DEF619112F76dF1FD7C361e0C6F47eE19de"; // testnet ENS.address;
+
   var ens = await ENS.at(ens_address);
 
   console.log("ENS=", ens_address);
-  var ownerCrazy = await ens.owner(namehash.hash("sefwallet1.one"));
-  console.log("Owner (crazy.one)", ownerCrazy);
+  var ownerCrazy = await ens.owner(namehash.hash("nobanktest.one"));
+  console.log("Owner", ownerCrazy);
 
   console.log(
     "Public Resolver",
-    await ens.resolver(namehash.hash("sefwallet.one"))
+    await ens.resolver(namehash.hash("nobanktest.one"))
   );
 
   const baseAddress = await ens.owner(ETH_NODE);
