@@ -36,14 +36,18 @@ module.exports = async function (deployer, network, accounts) {
   const tld = "one";
   const ETH_LABEL = utils.sha3(tld);
   const ETH_NODE = namehash.hash(tld);
-  var duration = 100000000;
+  // var duration = 100000000;
+  var duration = 31536000;
   var secret = utils.sha3("TempSecret123");
-  var name = "sefwallet";
-  var SEF_NODE = namehash.hash("sefwallet.one");
-  const SEF_LABEL = utils.sha3("sefwallet");
+  var name = "nobanktest";
+  var SEF_NODE = namehash.hash("nobanktest.one");
+  const SEF_LABEL = utils.sha3("nobanktest");
 
-  var ensAddress = "0x3fa4135B88cE1035Fed373F0801118a3340B37e7"; // ENS.address;
-  var controllerAddress = "0xbed36523cc78c8093cd0e4a6730e4c60bdc48b05"; // ETHRegistrarController.address;
+  // var ensAddress = "0x3fa4135B88cE1035Fed373F0801118a3340B37e7"; // mainnet ENS.address;
+  // var controllerAddress = "0xbed36523cc78c8093cd0e4a6730e4c60bdc48b05"; // mainnet ETHRegistrarController.address;
+
+  var ensAddress = "0x51766DEF619112F76dF1FD7C361e0C6F47eE19de"; // testnet ENS.address;
+  var controllerAddress = "0x82ee6596D7E30d384AF9F7A0552fCa55adD7A008"; // testnet ETHRegistrarController.address;
 
   var ens = await ENS.at(ensAddress);
   var baseAddress = await ens.owner(ETH_NODE);
@@ -54,6 +58,10 @@ module.exports = async function (deployer, network, accounts) {
   console.log("Base Address", baseAddress);
   console.log("Public Resolver", resolver_address);
   console.log("Controller at address=", controllerAddress);
+
+  console.log("accounts[0] address=", accounts[0]);
+  console.log("accounts[0] balance=", await web3.eth.getBalance(accounts[0]));
+  console.log("SEF_NODE=", SEF_NODE);
 
   // create subdomainregistrar
   await deployer.deploy(DummyOracle, utils.toBN(100000000000000));
@@ -124,17 +132,19 @@ module.exports = async function (deployer, network, accounts) {
   console.log("set resolver", tx.tx);
 
   var ownedResolver = await PublicResolver.at(resolver_address);
+  // console.log("ownedResolver", ownedResolver);
+  console.log("subdomainRegistrar.address", subdomainRegistrar.address);
   var tx = await ownedResolver.setAddr(SEF_NODE, subdomainRegistrar.address);
   console.log("set address", tx.tx);
 
   var registrar = await BaseRegistrarImplementation.at(baseAddress);
-  console.log("Owner of sefwallet=", await registrar.ownerOf(SEF_LABEL));
+  console.log("Owner of nobanktest=", await registrar.ownerOf(SEF_LABEL));
   var tx = await registrar.approve(subdomainRegistrar.address, SEF_LABEL);
   console.log(tx);
   sleep(5);
 
   var tx = await subdomainRegistrar.configureDomain(
-    "sefwallet",
+    "nobanktest",
     utils.toBN("10000000000000000"),
     accounts[0],
     { from: accounts[0] }
