@@ -40,11 +40,12 @@ module.exports = async function (deployer, network, accounts) {
   const ETH_NODE = namehash.hash(tld);
   // var duration = 100000000;
   // var duration = 31536000;
-  var duration = 157680000;
-  var secret = utils.sha3("GKBjnJQyQpZB");
-  var name = "nobank-test";
-  var SEF_NODE = namehash.hash("nobank-test.one");
-  const SEF_LABEL = utils.sha3("nobank-test");
+  // var duration = 157680000;
+  var duration = 3153600;
+  var secret = utils.sha3("GKBjnJQyQpZC");
+  var name = "nobank";
+  var SEF_NODE = namehash.hash("nobank.one");
+  const SEF_LABEL = utils.sha3("nobank");
 
   // var ensAddress = "0x3fa4135B88cE1035Fed373F0801118a3340B37e7"; // mainnet ENS.address;
   // var controllerAddress = "0xbed36523cc78c8093cd0e4a6730e4c60bdc48b05"; // mainnet ETHRegistrarController.address;
