@@ -13,6 +13,7 @@ const ETHRegistrarController = artifacts.require(
 
 module.exports = async function (callback) {
   var accounts = await web3.eth.getAccounts();
+  const name = namehash.hash("alice.nobank-test.one");
   console.log("Script started owner=", accounts[0]);
   //   var ens_address = "0x3fa4135B88cE1035Fed373F0801118a3340B37e7"; //mainnet
 
@@ -21,13 +22,10 @@ module.exports = async function (callback) {
   var ens = await ENS.at(ens_address);
 
   console.log("ENS=", ens_address);
-  var ownerCrazy = await ens.owner(namehash.hash("nobanktest.one"));
+  var ownerCrazy = await ens.owner(name);
   console.log("Owner", ownerCrazy);
 
-  console.log(
-    "Public Resolver",
-    await ens.resolver(namehash.hash("nobanktest.one"))
-  );
+  console.log("Public Resolver", await ens.resolver(name));
 
   const baseAddress = await ens.owner(ETH_NODE);
   console.log("baseImplementation ", baseAddress);

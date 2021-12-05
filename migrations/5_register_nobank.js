@@ -11,26 +11,26 @@ const PublicResolver = artifacts.require("@ensdomains/resolver/PublicResolver");
 const sleep = (sec) =>
   new Promise((resolve) => setTimeout(resolve, 1000 * sec));
 
-const StablePriceOracle = artifacts.require(
-  "@ensdomains/ethregistrar/StablePriceOracle"
-);
-const DummyOracle = artifacts.require("@ensdomains/ethregistrar/DummyOracle");
-const SubdomainRegistrar = artifacts.require("EthRegistrarSubdomainRegistrar");
-const SubdomainStorage = artifacts.require("SubdomainStorage");
+// const StablePriceOracle = artifacts.require(
+//   "@ensdomains/ethregistrar/StablePriceOracle"
+// );
+// const DummyOracle = artifacts.require("@ensdomains/ethregistrar/DummyOracle");
+// const SubdomainRegistrar = artifacts.require("EthRegistrarSubdomainRegistrar");
+// const SubdomainStorage = artifacts.require("SubdomainStorage");
 
 const ownerAddress = "0x72a87f0551b4a9f89e7c96dd122a7dc81d169b6c";
 
-function generatePricesArray() {
-  const minPriceForSec = utils.toBN(5000000000000000); // magic number
-  const charLen = 9;
+// function generatePricesArray() {
+//   const minPriceForSec = utils.toBN(5000000000000000); // magic number
+//   const charLen = 9;
 
-  var data = [];
-  data.push(minPriceForSec);
-  for (var i = 0; i < charLen; i++) {
-    data.push(data[i].mul(utils.toBN(2)));
-  }
-  return data.reverse();
-}
+//   var data = [];
+//   data.push(minPriceForSec);
+//   for (var i = 0; i < charLen; i++) {
+//     data.push(data[i].mul(utils.toBN(2)));
+//   }
+//   return data.reverse();
+// }
 
 // need ENS registry
 // need domain controller
@@ -42,9 +42,9 @@ module.exports = async function (deployer, network, accounts) {
   // var duration = 31536000;
   var duration = 157680000;
   var secret = utils.sha3("GKBjnJQyQpZB");
-  var name = "nobanktest2";
-  var SEF_NODE = namehash.hash("nobanktest2.one");
-  const SEF_LABEL = utils.sha3("nobanktest2");
+  var name = "nobank-test";
+  var SEF_NODE = namehash.hash("nobank-test.one");
+  const SEF_LABEL = utils.sha3("nobank-test");
 
   // var ensAddress = "0x3fa4135B88cE1035Fed373F0801118a3340B37e7"; // mainnet ENS.address;
   // var controllerAddress = "0xbed36523cc78c8093cd0e4a6730e4c60bdc48b05"; // mainnet ETHRegistrarController.address;
@@ -148,7 +148,7 @@ module.exports = async function (deployer, network, accounts) {
   // console.log("set address", tx.tx);
 
   var registrar = await BaseRegistrarImplementation.at(baseAddress);
-  console.log("Owner of nobanktest=", await registrar.ownerOf(SEF_LABEL));
+  console.log("Owner of nobank=", await registrar.ownerOf(SEF_LABEL));
   // var tx = await registrar.approve(subdomainRegistrar.address, SEF_LABEL);
   // console.log(tx);
   // sleep(5);
