@@ -297,22 +297,22 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
 
     require(duration >= domain.minDuration);
 
-    uint256 price = prices.price(
-      subdomain,
-      nameExpires(uint256(subdomainLabel)),
-      duration
-    );
+    // uint256 price = prices.price(
+    //   subdomain,
+    //   nameExpires(uint256(subdomainLabel)),
+    //   duration
+    // );
 
     // Domain must be available for registration
     require(keccak256(bytes(domain.name)) == label);
 
     // User must have paid enough
-    require(msg.value >= price);
+    // require(msg.value >= price);
 
     // Send any extra back
-    if (msg.value > price) {
-      msg.sender.transfer(msg.value - price);
-    }
+    // if (msg.value > price) {
+    //   msg.sender.transfer(msg.value - price);
+    // }
 
     // Register the domain
     if (subdomainOwner == address(0x0)) {
@@ -329,9 +329,9 @@ contract EthRegistrarSubdomainRegistrar is AbstractSubdomainRegistrar {
     );
 
     // Send the registration fee
-    if (price > 0) {
-      domain.referralAddress.transfer(price);
-    }
+    // if (price > 0) {
+    //   domain.referralAddress.transfer(price);
+    // }
 
     emit NewRegistration(label, subdomain, subdomainOwner, expires);
   }

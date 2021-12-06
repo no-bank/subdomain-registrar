@@ -9,8 +9,8 @@ module.exports = async function (callback) {
   var ens_address = "0x51766DEF619112F76dF1FD7C361e0C6F47eE19de"; // testnet ENS.address;
   var ens = await ENS.at(ens_address);
   var resolver_address = await ens.resolver(namehash.hash("crazy.one"));
-  var NODE = namehash.hash("nobank.one");
-  //   var NODE = namehash.hash("alice.nobank-test.one");
+  //   var NODE = namehash.hash("nobank.one");
+  var NODE = namehash.hash("taro.nobank.one");
 
   console.log("Script started owner=", accounts[0]);
   //   var ens_address = "0x3fa4135B88cE1035Fed373F0801118a3340B37e7"; //mainnet
@@ -22,7 +22,7 @@ module.exports = async function (callback) {
   var ownedResolver = await PublicResolver.at(resolver_address);
   console.log("ownedResolver", ownedResolver);
 
-  var tx = await ownedResolver.setAddr(NODE, ownerAddress);
+  var tx = await ownedResolver.setAddr(NODE, myAddress);
   console.log("set address", tx.tx);
 
   callback();

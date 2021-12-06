@@ -25,20 +25,24 @@ module.exports = async function (callback) {
   // console.log("ownedResolver", ownedResolver);
 
   // var subdomain_NODE = namehash.hash("alice.nobanktest2.one");
-  const subdomain_LABEL = utils.sha3("alice");
+  const subdomain_LABEL = utils.sha3("joycetesta");
+
+  console.log("NODE", NODE);
+  console.log("subdomain_LABEL", subdomain_LABEL);
+  console.log("resolver_address", resolver_address);
 
   const subdomainResult = await ens.setSubnodeRecord(
     NODE,
     subdomain_LABEL,
-    myAddress,
+    ownerAddress,
     resolver_address,
     duration
   );
 
   console.log("result: ", subdomainResult);
 
-  var tx = await ownedResolver.setAddr(NODE, myAddress);
-  console.log("set address", tx.tx);
+  // var tx = await ownedResolver.setAddr(NODE, myAddress);
+  // console.log("set address", tx.tx);
 
   callback();
 };
