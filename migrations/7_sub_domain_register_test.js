@@ -21,17 +21,20 @@ module.exports = async function (deployer, network, accounts) {
   const tld = "one";
   const ETH_NODE = namehash.hash(tld);
 
-  console.log("Resolver address: ", PublicResolver.address);
+  // console.log("Resolver address: ", PublicResolver.address);
 
   console.log("Owner account: ", accounts[0]);
   console.log("User account: ", accounts[1]);
 
   var ensAddress = "0x51766DEF619112F76dF1FD7C361e0C6F47eE19de"; // testnet ENS.address;
+  // var ensAddress = "0x3fa4135B88cE1035Fed373F0801118a3340B37e7"; // mainnet ENS.address;
   var ens = await ENS.at(ensAddress);
 
   var baseAddress = await ens.owner(ETH_NODE);
 
   var resolver_address = await ens.resolver(namehash.hash("crazy.one"));
+  console.log("resolver_address", resolver_address);
+
   const resolver = await PublicResolver.at(resolver_address);
 
   const registrar = await BaseRegistrarImplementation.at(baseAddress);
@@ -40,8 +43,12 @@ module.exports = async function (deployer, network, accounts) {
     SubdomainRegistrar.address
   );
 
+  console.log("SubdomainRegistrar.address", subdomainRegistrar.address);
+
   const domain = "nobank";
-  const duration = 60 * 60 * 24 * 365 * 100; // 1 year
+  const subdomain = "foo-12345ii8";
+  const subdomain_node = namehash.hash(subdomain + "." + domain + ".one");
+  const duration = 60 * 60 * 24 * 365 * 100; // 100 year
 
   //   await subdomainRegistrar.configureDomain(
   //     domain,
@@ -68,11 +75,11 @@ module.exports = async function (deployer, network, accounts) {
 
   console.log(
     "Owner nobank.one: ",
-    await ens.owner(namehash.hash("nobank.one"))
+    await ens.owner(namehash.hash(domain + ".one"))
   );
   console.log(
-    "Resolver nobank.one: ",
-    await resolver.addr(namehash.hash("nobank.one"))
+    "address nobank.one: ",
+    await resolver.addr(namehash.hash(domain + ".one"))
   );
 
   // const rentPriceSub = await subdomainRegistrar.rentPrice(
@@ -84,7 +91,7 @@ module.exports = async function (deployer, network, accounts) {
 
   const tx = await subdomainRegistrar.register(
     sha3(domain),
-    "foo-12345ii4",
+    subdomain,
     // accounts[0],
     "0xbA92CBA8Bb3CE3C5554220E70b41986c900b3c7C",
     duration,
@@ -97,8 +104,8 @@ module.exports = async function (deployer, network, accounts) {
 
   console.log("9 - subdomainRegistrar - SUCCESS");
 
-  console.log(await ens.owner(namehash.hash("foo-12345ii4.nobank.one")));
-  console.log(await resolver.addr(namehash.hash("foo-12345ii4.nobank.one")));
+  console.log("subdomain owner: ", await ens.owner(subdomain_node));
+  console.log("subdomain address: ", await resolver.addr(subdomain_node));
   // console.log(
   //   await subdomainRegistrar.twitter(namehash.hash("foo-12345ii.nobank.one"))
   // );
