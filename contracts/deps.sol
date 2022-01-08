@@ -5,3 +5,5 @@ pragma solidity >=0.4.24;
 
 import "@ensdomains/ens/contracts/ENSRegistry.sol";
 import "@ensdomains/ens/contracts/ENS.sol";
+// import "@ensdomains/ens-contracts/contracts/registry/ENS.sol";
+// import "@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol";
